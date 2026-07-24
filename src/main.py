@@ -34,6 +34,16 @@ app.add_middleware(
 app.include_router(router, prefix="/api/v1")
 
 
+@app.get("/")
+async def root():
+    return {
+        "message": "AI20K Agent API is running",
+        "docs": "/docs",
+        "health": "/health",
+    }
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok", "env": settings.app_env}
+
