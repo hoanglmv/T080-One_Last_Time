@@ -17,62 +17,120 @@ Khi tham gia AI20K Build Phase, mỗi đội cần xây dựng một AI Agent ho
 
 ## ⚡ Quick Start
 
-### Bước 1: Fork hoặc Clone
+Yêu cầu duy nhất là [`uv`](https://docs.astral.sh/uv/). Project khóa Python
+và toàn bộ dependencies trong `.python-version` và `uv.lock`, vì vậy không cần
+cài Python hay tạo virtual environment thủ công.
+
+### 1. Clone project
 
 ```bash
-# Clone template
-git clone https://github.com/AI20K-Build-Cohort-2/starter-code-template.git team-YOUR_TEAM_NAME
-cd team-YOUR_TEAM_NAME
-
-# Xóa git history cũ và khởi tạo lại
-rm -rf .git
-git init
-git add .
-git commit -m "feat: khởi tạo dự án từ template"
+git clone https://github.com/hoanglmv/P080-One_Last_Time.git
+cd P080-One_Last_Time
 ```
 
-### Bước 2: Setup môi trường
+### 2. Cài `uv`
 
 ```bash
-# Tạo virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
+# macOS / Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Cài dependencies
-pip install -e ".[dev]"
+# Windows PowerShell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
 
-# Cấu hình API keys
+Mở lại terminal nếu lệnh `uv` chưa xuất hiện trong `PATH`, sau đó kiểm tra:
+
+```bash
+uv --version
+```
+
+### 3. Cài Python và dependencies
+
+```bash
+uv sync --frozen
+```
+
+Lệnh này tự động:
+
+- tải đúng Python 3.11 nếu máy chưa có;
+- tạo `.venv`;
+- cài chính xác dependencies từ `uv.lock`.
+
+Không cần activate `.venv`. Hãy chạy các lệnh Python của project qua `uv run`.
+
+### 4. Cấu hình biến môi trường
+
+macOS/Linux/Git Bash:
+
+```bash
 cp .env.example .env
-# Mở .env và thêm OPENAI_API_KEY của bạn
-# Đồng thời cập nhật AI_LOG_API_KEY bằng key riêng từ link mời của BTC
-# (giá trị trong .env.example chỉ là placeholder)
 ```
 
-### Bước 3: Cài AI Logging Hooks
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Mở `.env` và cập nhật ít nhất:
+
+```dotenv
+OPENAI_API_KEY=your-openai-api-key
+AI_LOG_API_KEY=your-invitation-key
+```
+
+`AI_LOG_API_KEY` là key riêng trong link mời của BTC. Không commit `.env` hoặc
+bất kỳ API key nào lên Git.
+
+### 5. Cài AI Logging Hooks
 
 ```bash
 # Linux / macOS / Git Bash
 bash scripts/setup_hooks.sh
-
-# Windows PowerShell
-# powershell -ExecutionPolicy Bypass -File scripts\setup_hooks.ps1
 ```
 
-Hooks tự động log mọi AI prompt khi dùng Claude Code, Cursor, Codex, Gemini CLI, Antigravity, hoặc GitHub Copilot. Không cần thao tác thủ công.
+```powershell
+# Windows PowerShell
+powershell -ExecutionPolicy Bypass -File scripts\setup_hooks.ps1
+```
 
-### Bước 4: Chạy server
+Chỉ cần cài hooks một lần sau khi clone.
+
+### 6. Kiểm tra project
 
 ```bash
-# Chạy FastAPI backend
-uvicorn src.main:app --reload --port 8000
-
-# Mở Swagger UI
-# http://localhost:8000/docs
+make check
 ```
 
-### Bước 5: Đọc hướng dẫn
+Nếu máy không có `make`, chạy:
 
-📖 Mở **[Technical Guidebook](https://phoenix.note.transformerlabs.ai/technical-book)** và làm theo từng chương.
+```bash
+uv run ruff check src tests
+uv run mypy src
+uv run pytest
+```
+
+### 7. Chạy ứng dụng
+
+```bash
+uv run uvicorn src.main:app --reload --port 8000
+```
+
+Sau khi server khởi động:
+
+- API root: <http://localhost:8000>
+- Swagger UI: <http://localhost:8000/docs>
+- Health check: <http://localhost:8000/health>
+
+Các lệnh thường dùng:
+
+```bash
+make run        # Chạy development server
+make test       # Chạy tests
+make lint       # Kiểm tra code style
+make typecheck  # Kiểm tra type annotations
+make check      # Chạy lint, type-check và tests
+```
 
 ## 📁 Cấu trúc dự án
 
@@ -110,6 +168,8 @@ uvicorn src.main:app --reload --port 8000
 ├── .github/hooks/        # 🪝 Copilot hook config
 ├── Dockerfile            # 🐳 Multi-stage build
 ├── docker-compose.yml    # 🐙 Full stack orchestration
+├── pyproject.toml        # 📦 Metadata và khai báo dependencies
+├── uv.lock               # 🔒 Phiên bản dependency tái lập trên mọi máy
 └── README_boilerplate.md # 📝 README template cho đội của bạn
 ```
 

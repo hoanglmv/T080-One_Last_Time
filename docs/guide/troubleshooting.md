@@ -13,53 +13,35 @@ Phần này tổng hợp các lỗi phổ biến khi setup và chạy dự án A
 
 ### `ModuleNotFoundError: No module named 'xxx'`
 
-**Nguyên nhân:** Bạn chưa kích hoạt virtual environment, hoặc cài package nhầm vào system Python.
+**Nguyên nhân:** Môi trường chưa được đồng bộ hoặc lệnh không chạy qua `uv`.
 
 **Cách sửa:**
 ```bash
-# 1. Xác nhận đang ở trong venv
-which python
-# Output phải chứa .venv, ví dụ: /path/to/project/.venv/bin/python
-
-# 2. Nếu không, kích hoạt lại
-source .venv/bin/activate
-
-# 3. Cài lại package
-pip install -e ".[dev]"
+uv sync --frozen
+uv run python -c "import fastapi; print(fastapi.__version__)"
 ```
 
 **Nếu vẫn lỗi:**
 ```bash
-# Xóa venv cũ và tạo lại
+# macOS/Linux: tạo lại môi trường từ lockfile
 rm -rf .venv
-python3.11 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
+uv sync --frozen
+
+# Windows PowerShell:
+# Remove-Item -Recurse -Force .venv
+# uv sync --frozen
 ```
 
 ### `python3.11: command not found`
 
-**Nguyên nhân:** Chưa cài Python 3.11 hoặc không có trong PATH.
+Không gọi `python3.11` trực tiếp. Chạy `uv sync --frozen`; `uv` sẽ đọc
+`.python-version` và tự tải đúng Python nếu máy chưa có.
 
-**Cách sửa (macOS):**
+### `uv sync` chậm hoặc timeout
+
+Thử lại với index khác:
 ```bash
-brew install python@3.11
-```
-
-**Cách sửa (Ubuntu/WSL):**
-```bash
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt update
-sudo apt install python3.11 python3.11-venv python3.11-dev
-```
-
-### `pip install` chậm hoặc timeout
-
-**Cách sửa:** Dùng mirror gần Việt Nam:
-```bash
-pip install -e ".[dev]" -i https://pypi.tuna.tsinghua.edu.cn/simple
-# Hoặc
-pip install -e ".[dev]" -i https://mirror.cloudflare.com/pypi/simple
+UV_DEFAULT_INDEX=https://pypi.tuna.tsinghua.edu.cn/simple uv sync --frozen
 ```
 
 ### `ERROR: Could not build wheel for xxx`
@@ -82,12 +64,13 @@ sudo apt install build-essential python3.11-dev
 
 ### `uvicorn: command not found`
 
-**Nguyên nhân:** uvicorn chưa được cài hoặc chưa kích hoạt venv.
+**Nguyên nhân:** Dependency chưa được đồng bộ hoặc lệnh đang chạy ngoài môi
+trường project.
 
 **Cách sửa:**
 ```bash
-source .venv/bin/activate
-pip install uvicorn
+uv sync --frozen
+uv run uvicorn src.main:app --reload
 ```
 
 ### `ERROR: [Errno 48] Address already in use` (Port 8000 bị chiếm)
@@ -103,7 +86,7 @@ lsof -i :8000
 kill -9 <PID>
 
 # Hoặc dùng port khác
-uvicorn src.api.main:app --reload --port 8001
+uv run uvicorn src.main:app --reload --port 8001
 ```
 
 ### `openai.AuthenticationError: Invalid API Key`
@@ -313,4 +296,4 @@ app.add_middleware(
 2. **Google lỗi** — Copy paste error message vào Google, thường có giải pháp trên StackOverflow
 3. **Check `.env`** — 80% lỗi production do biến môi trường thiếu hoặc sai
 4. **Chạy `make check`** — Lint + format + typecheck + test trong một lệnh
-5. **Xóa và tạo lại** — `rm -rf .venv && python3.11 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"`
+5. **Xóa và tạo lại** — xóa `.venv`, sau đó chạy `uv sync --frozen`

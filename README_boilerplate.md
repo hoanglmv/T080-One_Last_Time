@@ -42,11 +42,11 @@ cd A20-App-XXX
 cp .env.example .env
 # Edit .env with your API keys
 
-# 3. Install dependencies
-pip install -r requirements.txt
+# 3. Install dependencies (install uv first: https://docs.astral.sh/uv/)
+uv sync --frozen
 
 # 4. Run development server
-uvicorn src.main:app --reload
+uv run uvicorn src.main:app --reload
 ```
 
 ## Project Structure

@@ -1,19 +1,11 @@
-# ---- Stage 1: Build ----
-FROM python:3.11-slim AS builder
-
-WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
-
-# ---- Stage 2: Production ----
+FROM ghcr.io/astral-sh/uv:0.11.26 AS uv
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy installed packages from builder
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
+COPY --from=uv /uv /uvx /bin/
+COPY pyproject.toml uv.lock .python-version ./
+RUN uv sync --frozen --no-dev --no-install-project
 
 # Security: run as non-root user
 RUN useradd -m appuser
@@ -25,6 +17,8 @@ COPY . .
 RUN mkdir -p /app/data && chown -R appuser:appuser /app
 
 USER appuser
+
+ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8000
 

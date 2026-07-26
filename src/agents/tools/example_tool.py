@@ -1,10 +1,11 @@
 import ast
 import operator
+from collections.abc import Callable
 
 from langchain_core.tools import tool
 
 # Safe operator mapping for calculator
-_SAFE_OPERATORS = {
+_SAFE_OPERATORS: dict[type[ast.AST], Callable[..., float]] = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,
     ast.Mult: operator.mul,

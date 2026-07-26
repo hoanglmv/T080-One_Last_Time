@@ -13,26 +13,33 @@ git clone https://github.com/AI20K-Build-Cohort-2/starter-code-template.git C2-A
 cd C2-App-XXX
 ```
 
-### Bước 2: Environment Setup
+### Bước 2: Cài uv và đồng bộ môi trường
 
 ```bash
-# Tạo virtual environment
-python3 -m venv .venv
-source .venv/bin/activate  # macOS/Linux
+# Cài uv một lần (macOS/Linux)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Cài dependencies
-pip install -r requirements.txt
+# Windows PowerShell:
+# powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Tạo .venv, lấy đúng Python và cài dependency từ uv.lock
+uv sync --frozen
 
 # Tạo .env từ template
 cp .env.example .env
+# Windows PowerShell: Copy-Item .env.example .env
 # → Mở .env và điền API keys
 ```
+
+Không cần activate `.venv`; dùng `uv run` cho tất cả lệnh của project.
 
 ### Bước 3: Verify Setup
 
 ```bash
 # Chạy server
-uvicorn src.main:app --reload
+uv run ruff check src tests
+uv run pytest
+uv run uvicorn src.main:app --reload
 
 # Mở browser: http://localhost:8000/docs
 # → Phải thấy Swagger UI
@@ -72,6 +79,8 @@ C2-App-XXX/
 ├── presentation/           ← Demo materials
 ├── Dockerfile              ← Multi-stage build
 ├── docker-compose.yml      ← Full stack
+├── pyproject.toml          ← Khai báo project và dependencies
+├── uv.lock                 ← Dependency versions đã khóa
 └── .github/workflows/      ← CI/CD
 ```
 
