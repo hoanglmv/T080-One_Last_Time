@@ -5,7 +5,7 @@ set -e
 
 echo "=== AI20K Project Setup ==="
 
-# uv creates .venv and installs the pinned Python/dependencies.
+# Astral uv creates .venv and installs the pinned Python/dependencies.
 if ! command -v uv >/dev/null 2>&1; then
     echo "uv is required: https://docs.astral.sh/uv/getting-started/installation/"
     exit 1

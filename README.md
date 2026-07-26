@@ -28,19 +28,17 @@ git clone https://github.com/hoanglmv/P080-One_Last_Time.git
 cd P080-One_Last_Time
 ```
 
-### 2. Cài `uv`
+### 2. Cài Astral `uv` (Linux)
 
 ```bash
-# macOS / Linux
+# Installer chính thức của Astral
 curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Windows PowerShell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
-Mở lại terminal nếu lệnh `uv` chưa xuất hiện trong `PATH`, sau đó kiểm tra:
+Mở terminal mới để nạp lại `PATH`, hoặc chạy ngay:
 
 ```bash
+source "$HOME/.local/bin/env"
 uv --version
 ```
 
@@ -58,18 +56,10 @@ Lệnh này tự động:
 
 Không cần activate `.venv`. Hãy chạy các lệnh Python của project qua `uv run`.
 
-### 4. Cấu hình biến môi trường
-
-macOS/Linux/Git Bash:
+### 4. Cấu hình biến môi trường (Linux)
 
 ```bash
 cp .env.example .env
-```
-
-Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
 ```
 
 Mở `.env` và cập nhật ít nhất:
@@ -82,16 +72,10 @@ AI_LOG_API_KEY=your-invitation-key
 `AI_LOG_API_KEY` là key riêng trong link mời của BTC. Không commit `.env` hoặc
 bất kỳ API key nào lên Git.
 
-### 5. Cài AI Logging Hooks
+### 5. Cài AI Logging Hooks (Linux)
 
 ```bash
-# Linux / macOS / Git Bash
 bash scripts/setup_hooks.sh
-```
-
-```powershell
-# Windows PowerShell
-powershell -ExecutionPolicy Bypass -File scripts\setup_hooks.ps1
 ```
 
 Chỉ cần cài hooks một lần sau khi clone.

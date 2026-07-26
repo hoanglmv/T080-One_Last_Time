@@ -16,18 +16,14 @@ cd C2-App-XXX
 ### Bước 2: Cài uv và đồng bộ môi trường
 
 ```bash
-# Cài uv một lần (macOS/Linux)
+# Cài Astral uv một lần (Linux)
 curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Windows PowerShell:
-# powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
 # Tạo .venv, lấy đúng Python và cài dependency từ uv.lock
 uv sync --frozen
 
 # Tạo .env từ template
 cp .env.example .env
-# Windows PowerShell: Copy-Item .env.example .env
 # → Mở .env và điền API keys
 ```
 
