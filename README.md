@@ -35,10 +35,9 @@ cd P080-One_Last_Time
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-Mở terminal mới để nạp lại `PATH`, hoặc chạy ngay:
+Mở terminal mới để nạp lại `PATH`, sau đó kiểm tra:
 
 ```bash
-source "$HOME/.local/bin/env"
 uv --version
 ```
 
