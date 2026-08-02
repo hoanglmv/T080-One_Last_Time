@@ -79,6 +79,9 @@ bash scripts/setup_hooks.sh
 
 Chỉ cần cài hooks một lần sau khi clone.
 
+Thành viên dùng Windows, cần cấu hình từng AI tool hoặc cần kiểm tra/xử lý lỗi,
+xem [Hướng dẫn cài AI Log Hook cho thành viên](docs/guide/setup/ai-log-hooks.md).
+
 ### 6. Kiểm tra project
 
 ```bash
