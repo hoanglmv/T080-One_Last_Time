@@ -29,9 +29,12 @@ env/
 Thumbs.db
 
 # Data (never commit large data)
-data/
+data/*
+!data/DATA.md
+!data/README.md
 *.db
 *.sqlite3
+
 
 # Logs
 logs/
