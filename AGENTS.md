@@ -8,6 +8,7 @@ Dự án nghiên cứu và phát triển mô hình Alternative Credit Scoring nh
 
 - Nghiên cứu các phương pháp Alternative Credit Scoring.
 - Khảo sát bài báo khoa học và dự án thực tế.
+- Xây dựng mô hình, dữ liệu, và pipeline phù hợp cho thị trường Việt Nam.
 - Huấn luyện mô hình dự đoán rủi ro tín dụng.
 - Đánh giá khả năng giải thích, độ công bằng và hiệu quả của mô hình.
 
