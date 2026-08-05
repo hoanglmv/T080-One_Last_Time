@@ -26,6 +26,7 @@ def create_home_credit_eda_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "import warnings\n",
                 "warnings.filterwarnings('ignore')\n",
@@ -60,6 +61,7 @@ def create_home_credit_eda_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "app_train = pd.read_csv(DATA_DIR / 'application_train.csv')\n",
                 "print(f'✓ Tổng số bản ghi (rows): {len(app_train):,}')\n",
@@ -81,6 +83,7 @@ def create_home_credit_eda_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "target_counts = app_train['TARGET'].value_counts()\n",
                 "target_rates = app_train['TARGET'].value_counts(normalize=True) * 100\n",
@@ -119,6 +122,7 @@ def create_home_credit_eda_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "fig, axes = plt.subplots(2, 2, figsize=(16, 10))\n",
                 "\n",
@@ -163,6 +167,7 @@ def create_home_credit_eda_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "fig, axes = plt.subplots(1, 3, figsize=(18, 5))\n",
                 "for i, col in enumerate(['EXT_SOURCE_1', 'EXT_SOURCE_2', 'EXT_SOURCE_3']):\n",
@@ -190,6 +195,7 @@ def create_home_credit_eda_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "# Tạo biến phái sinh tài chính thay thế\n",
                 "app_train['CREDIT_TO_INCOME_RATIO'] = app_train['AMT_CREDIT'] / (app_train['AMT_INCOME_TOTAL'] + 1)\n",
@@ -208,7 +214,7 @@ def create_home_credit_eda_notebook():
                 "## 6. 🎯 Định Hướng Xây Dựng Mô Hình Alternative Credit Scoring\n",
                 "\n",
                 "### 📌 Tóm Tắt Kết Quả EDA:\n",
-                "1. **Mất cân bằng dữ liệu**: Tỷ lệ vỡ nợ **8.07%**. Đánh giá mô hình bằng **ROC-AUC**, **PR-AUC**, **KS Statistic** ($KS > 40\%$).\n",
+                "1. **Mất cân bằng dữ liệu**: Tỷ lệ vỡ nợ **8.07%**. Đánh giá mô hình bằng **ROC-AUC**, **PR-AUC**, **KS Statistic** (Mục tiêu $KS > 40\\%$).\n",
                 "2. **Giá trị của Dữ Liệu Thay Thế (Alternative Data)**:\n",
                 "   - `EXT_SOURCE_1/2/3` đóng vai trò quan trọng nhất trong phân tách rủi ro.\n",
                 "   - Thâm niên liên lạc (`PHONE_CHANGE_YEARS`), loại hình nhà ở và mạng lưới xã hội mang lại tín hiệu dự báo mạnh cho nhóm Unbanked.\n",
@@ -251,6 +257,7 @@ def create_vietnam_churn_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "import warnings\n",
                 "warnings.filterwarnings('ignore')\n",
@@ -288,6 +295,7 @@ def create_vietnam_churn_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "info_df = pd.DataFrame({\n",
                 "    'Data Type': df.dtypes,\n",
@@ -311,6 +319,7 @@ def create_vietnam_churn_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "fig, axes = plt.subplots(1, 3, figsize=(18, 5))\n",
                 "\n",
@@ -342,6 +351,7 @@ def create_vietnam_churn_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "fig, axes = plt.subplots(1, 2, figsize=(14, 5))\n",
                 "\n",
@@ -369,6 +379,7 @@ def create_vietnam_churn_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "num_cols = df.select_dtypes(include=['int64', 'float64', 'bool']).columns\n",
                 "plt.figure(figsize=(14, 10))\n",
@@ -414,17 +425,19 @@ def create_preprocessing_notebook():
                 "\n",
                 "## 📌 Mục Tiêu Xử Lý Dữ Liệu Cho Alternative Credit Scoring\n",
                 "Notebook này thực hiện các bước xử lý dữ liệu và tạo đặc trưng phái sinh (Feature Engineering) theo đúng chuẩn quy trình trong `AGENTS.md`:\n",
-                "1. **Xử lý giá trị bất thường (Outliers)**: Phát hiện và xử lý anomaly trong `DAYS_EMPLOYED` (`365243` -> `NaN` + flag `DAYS_EMPLOYED_ANOM`).\n",
-                "2. **Feature Engineering cho Alternative Data**: Tạo các chỉ số khả năng chi trả thay thế (`CREDIT_TO_INCOME_RATIO`, `ANNUITY_TO_INCOME_RATIO`, `PAYMENT_RATE`, `EMPLOYMENT_TO_AGE_RATIO`, `EXT_SOURCE_MEAN`, `EXT_SOURCE_MUL`).\n",
-                "3. **Tổng hợp dữ liệu đa bảng (Relational Aggregations)**: Gom nhóm thông tin lịch sử tín dụng từ `bureau.csv`, `previous_application.csv`, và `installments_payments.csv` theo `SK_ID_CURR`.\n",
-                "4. **Mã hóa biến định tính (Categorical Encoding)**: One-Hot Encoding cho các biến phân loại.\n",
-                "5. **Xuất bộ dữ liệu sạch (Processed Dataset)**: Lưu kết quả đã xử lý sẵn sàng cho bước huấn luyện mô hình."
+                "1. **Lọc Scope & Outliers**: Phát hiện và xử lý anomaly trong `DAYS_EMPLOYED` (`365243` -> `NaN` + flag `DAYS_EMPLOYED_ANOM`).\n",
+                "2. **Lọc theo tỷ lệ khuyết (Missing Filter)**: Đánh giá và lọc bỏ các cột có tỷ lệ missing > 75% không chứa thông tin tín dụng.\n",
+                "3. **Feature Engineering cho Alternative Data**: Tạo các chỉ số khả năng chi trả thay thế (`CREDIT_TO_INCOME_RATIO`, `ANNUITY_TO_INCOME_RATIO`, `PAYMENT_RATE`, `EMPLOYMENT_TO_AGE_RATIO`, `EXT_SOURCE_MEAN`, `EXT_SOURCE_MUL`).\n",
+                "4. **Tổng hợp dữ liệu đa bảng (Relational Aggregations)**: Gom nhóm thông tin lịch sử tín dụng từ `bureau.csv`, `previous_application.csv`, và `installments_payments.csv` theo `SK_ID_CURR`.\n",
+                "5. **Mã hóa biến định tính (Categorical Encoding)**: One-Hot Encoding cho các biến phân loại.\n",
+                "6. **Xuất bộ dữ liệu sạch (Processed Dataset)**: Lưu kết quả đã xử lý sẵn sàng cho bước huấn luyện mô hình."
             ]
         },
         {
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "import warnings\n",
                 "warnings.filterwarnings('ignore')\n",
@@ -451,23 +464,30 @@ def create_preprocessing_notebook():
             "metadata": {},
             "source": [
                 "---\n",
-                "## 1. 📂 Processing Bảng Chính `application_train.csv`"
+                "## 1. 📂 1. Lọc Scope & Preprocessing Bảng Chính `application_train.csv`"
             ]
         },
         {
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "start_time = time.time()\n",
                 "app_df = pd.read_csv(DATA_DIR / 'application_train.csv')\n",
                 "print(f'► Shape ban đầu của application_train: {app_df.shape}')\n",
                 "\n",
-                "# 1. Xử lý giá trị bất thường DAYS_EMPLOYED == 365243 (~1000 năm)\n",
+                "# 1. Lọc Scope & Xử lý giá trị bất thường DAYS_EMPLOYED == 365243 (~1000 năm)\n",
                 "app_df['DAYS_EMPLOYED_ANOM'] = (app_df['DAYS_EMPLOYED'] == 365243).astype(int)\n",
                 "app_df['DAYS_EMPLOYED'] = app_df['DAYS_EMPLOYED'].replace(365243, np.nan)\n",
                 "\n",
-                "# 2. Feature Engineering cho Alternative Credit Scoring\n",
+                "# 2. Lọc theo tỷ lệ khuyết (Missing Rate Filter > 75%)\n",
+                "missing_series = app_df.isnull().sum() / len(app_df)\n",
+                "cols_to_drop = missing_series[missing_series > 0.75].index.tolist()\n",
+                "print(f'► Số lượng biến bị lọc do Missing Rate > 75%: {len(cols_to_drop)}')\n",
+                "app_df = app_df.drop(columns=cols_to_drop)\n",
+                "\n",
+                "# 3. Feature Engineering cho Alternative Credit Scoring\n",
                 "app_df['CREDIT_TO_INCOME_RATIO'] = app_df['AMT_CREDIT'] / (app_df['AMT_INCOME_TOTAL'] + 1)\n",
                 "app_df['ANNUITY_TO_INCOME_RATIO'] = app_df['AMT_ANNUITY'] / (app_df['AMT_INCOME_TOTAL'] + 1)\n",
                 "app_df['PAYMENT_RATE'] = app_df['AMT_ANNUITY'] / (app_df['AMT_CREDIT'] + 1)\n",
@@ -495,6 +515,7 @@ def create_preprocessing_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "# Gom nhóm bureau.csv\n",
                 "bureau_path = DATA_DIR / 'bureau.csv'\n",
@@ -557,6 +578,7 @@ def create_preprocessing_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "# One-Hot Encoding cho các biến object\n",
                 "cat_cols = app_df.select_dtypes(include=['object', 'category']).columns.tolist()\n",
@@ -595,15 +617,18 @@ def create_baseline_scorecard_notebook():
                 "\n",
                 "## 📌 Mục Tiêu Xây Dựng Baseline Theo Chuẩn Ngành Ngân Hàng\n",
                 "Theo quy trình machine learning bắt buộc trong `AGENTS.md` (Bước 5):\n",
-                "1. **Xây dựng Baseline Model**: Áp dụng thuật toán **Logistic Regression** trên tập dữ liệu đã chuẩn hóa.\n",
-                "2. **Chống Data Leakage**: Tách tập Train (80%) và Validation (20%) bằng Stratified K-Fold trước mọi thao tác Scaler & Imputation.\n",
-                "3. **Thước đo Đánh giá Ngân hàng**: Tính toán **ROC-AUC**, **PR-AUC**, **KS Statistic** (Kolmogorov-Smirnov), **Gini Coefficient**, và **Calibration Curve** (Brier Score)."
+                "1. **Tính toán Weight of Evidence (WoE) & Information Value (IV)** cho tất cả các đặc trưng để đánh giá sức mạnh phân tách nợ xấu.\n",
+                "2. **Lọc Feature theo chuẩn IV & Multicollinearity**: Giữ lại các biến có $IV \\ge 0.02$ và loại bỏ các biến đa cộng tuyến ($|r| > 0.8$).\n",
+                "3. **Chống Data Leakage**: Tách tập Train (80%) và Validation (20%) bằng Stratified K-Fold trước mọi thao tác Scaler & Imputation.\n",
+                "4. **Huấn luyện Baseline Scorecard**: Sử dụng thuật toán **Logistic Regression** với `class_weight='balanced'`.\n",
+                "5. **Thước đo Đánh giá Ngân hàng**: Tính toán **ROC-AUC**, **PR-AUC**, **KS Statistic** (Kolmogorov-Smirnov), **Gini Coefficient**, và **Calibration Curve** (Brier Score)."
             ]
         },
         {
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "import warnings\n",
                 "warnings.filterwarnings('ignore')\n",
@@ -614,11 +639,11 @@ def create_baseline_scorecard_notebook():
                 "import seaborn as sns\n",
                 "from pathlib import Path\n",
                 "\n",
-                "from sklearn.model_selection import train_test_split, StratifiedKFold\n",
+                "from sklearn.model_selection import train_test_split\n",
                 "from sklearn.preprocessing import StandardScaler\n",
                 "from sklearn.impute import SimpleImputer\n",
                 "from sklearn.linear_model import LogisticRegression\n",
-                "from sklearn.metrics import roc_auc_score, precision_recall_curve, auc, roc_curve, classification_report, brier_score_loss\n",
+                "from sklearn.metrics import roc_auc_score, precision_recall_curve, auc, roc_curve, brier_score_loss\n",
                 "from sklearn.calibration import calibration_curve\n",
                 "\n",
                 "pd.set_option('display.max_columns', 100)\n",
@@ -633,7 +658,6 @@ def create_baseline_scorecard_notebook():
                 "    df = pd.read_csv(DATA_PATH)\n",
                 "    print(f'✓ Nạp dữ liệu thành công từ {DATA_PATH}: shape = {df.shape}')\n",
                 "else:\n",
-                "    print('⚠️ Chưa tìm thấy file home_credit_processed.csv. Đang dùng sample từ application_train.csv...')\n",
                 "    RAW_PATH = Path('../data/raw/home-credit-default-risk/application_train.csv')\n",
                 "    if not RAW_PATH.exists():\n",
                 "        RAW_PATH = Path('data/raw/home-credit-default-risk/application_train.csv')\n",
@@ -648,16 +672,74 @@ def create_baseline_scorecard_notebook():
             "metadata": {},
             "source": [
                 "---\n",
-                "## 1. ✂️ Tách Dữ Liệu Train / Validation & Pipeline Imputation"
+                "## 1. 🔍 Tính Toán Weight of Evidence (WoE) & Information Value (IV) - Lọc Feature"
             ]
         },
         {
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
-                "# Tách X và y\n",
-                "X = df.drop(columns=['TARGET', 'SK_ID_CURR'], errors='ignore')\n",
+                "def calculate_iv(df, target_col, bins=10):\n",
+                "    iv_list = []\n",
+                "    features = [c for c in df.columns if c not in [target_col, 'SK_ID_CURR']]\n",
+                "    \n",
+                "    total_goods = (df[target_col] == 0).sum()\n",
+                "    total_bads = (df[target_col] == 1).sum()\n",
+                "    \n",
+                "    for feat in features:\n",
+                "        try:\n",
+                "            if df[feat].nunique() <= 2:\n",
+                "                binned = df[feat]\n",
+                "            else:\n",
+                "                binned = pd.qcut(df[feat], q=bins, duplicates='drop')\n",
+                "            \n",
+                "            grouped = df.groupby(binned, observed=False)[target_col].agg(['count', 'sum'])\n",
+                "            grouped['goods'] = grouped['count'] - grouped['sum']\n",
+                "            grouped['bads'] = grouped['sum']\n",
+                "            \n",
+                "            grouped['dist_goods'] = (grouped['goods'] + 0.5) / (total_goods + 1)\n",
+                "            grouped['dist_bads'] = (grouped['bads'] + 0.5) / (total_bads + 1)\n",
+                "            \n",
+                "            grouped['woe'] = np.log(grouped['dist_goods'] / grouped['dist_bads'])\n",
+                "            grouped['iv'] = (grouped['dist_goods'] - grouped['dist_bads']) * grouped['woe']\n",
+                "            \n",
+                "            total_iv = grouped['iv'].sum()\n",
+                "            iv_list.append({'Feature': feat, 'IV': total_iv})\n",
+                "        except Exception:\n",
+                "            continue\n",
+                "            \n",
+                "    iv_df = pd.DataFrame(iv_list).sort_values(by='IV', ascending=False)\n",
+                "    return iv_df\n",
+                "\n",
+                "print('► Bắt đầu tính toán Information Value (IV) cho tập dữ liệu...')\n",
+                "sample_for_iv = df.sample(n=min(30000, len(df)), random_state=42)\n",
+                "iv_summary = calculate_iv(sample_for_iv, 'TARGET')\n",
+                "print('=== TOP 15 ĐẶC TRƯNG CÓ INFORMATION VALUE (IV) CAO NHẤT ===')\n",
+                "print(iv_summary.head(15).to_string(index=False))\n",
+                "\n",
+                "# Sàng lọc các biến có IV >= 0.02 (Loại bỏ Uninformative Features)\n",
+                "selected_iv_features = iv_summary[iv_summary['IV'] >= 0.02]['Feature'].tolist()\n",
+                "print(f'✓ Số lượng đặc trưng giữ lại sau lọc IV (IV >= 0.02): {len(selected_iv_features)} / {len(df.columns)-2}')"
+            ]
+        },
+        {
+            "cell_type": "markdown",
+            "metadata": {},
+            "source": [
+                "---\n",
+                "## 2. ✂️ Tách Dữ Liệu Train / Validation & Pipeline Imputation (Anti Data Leakage)"
+            ]
+        },
+        {
+            "cell_type": "code",
+            "execution_count": None,
+            "metadata": {},
+            "outputs": [],
+            "source": [
+                "# Tách X và y chỉ lấy các biến đã qua sàng lọc IV\n",
+                "X = df[selected_iv_features] if len(selected_iv_features) > 5 else df.drop(columns=['TARGET', 'SK_ID_CURR'], errors='ignore')\n",
                 "y = df['TARGET']\n",
                 "\n",
                 "# Chia Stratified Train / Validation (80/20)\n",
@@ -683,13 +765,14 @@ def create_baseline_scorecard_notebook():
             "metadata": {},
             "source": [
                 "---\n",
-                "## 2. 🤖 Huấn Luyện Baseline Logistic Regression Scorecard"
+                "## 3. 🤖 Huấn Luyện Baseline Logistic Regression Scorecard"
             ]
         },
         {
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "# Huấn luyện Logistic Regression với class_weight='balanced' do mất cân bằng dữ liệu\n",
                 "lr_model = LogisticRegression(class_weight='balanced', C=0.05, max_iter=500, random_state=42)\n",
@@ -709,26 +792,22 @@ def create_baseline_scorecard_notebook():
             "metadata": {},
             "source": [
                 "---\n",
-                "## 3. 📈 Đánh Giá Chỉ Số Rủi Ro Tín Dụng (ROC-AUC, PR-AUC, KS, Gini, Calibration)"
+                "## 4. 📈 Đánh Giá Chỉ Số Rủi Ro Tín Dụng (ROC-AUC, PR-AUC, KS, Gini, Calibration)"
             ]
         },
         {
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "def calculate_credit_metrics(y_true, y_prob):\n",
-                "    # 1. ROC-AUC\n",
                 "    auc_score = roc_auc_score(y_true, y_prob)\n",
-                "    # 2. Gini = 2 * AUC - 1\n",
                 "    gini_score = 2 * auc_score - 1\n",
-                "    # 3. KS Statistic\n",
                 "    fpr, tpr, thresholds = roc_curve(y_true, y_prob)\n",
                 "    ks_stat = np.max(tpr - fpr)\n",
-                "    # 4. PR-AUC\n",
                 "    precision, recall, _ = precision_recall_curve(y_true, y_prob)\n",
                 "    pr_auc = auc(recall, precision)\n",
-                "    # 5. Brier Score (Calibration)\n",
                 "    brier = brier_score_loss(y_true, y_prob)\n",
                 "    return {\n",
                 "        'ROC-AUC': auc_score,\n",
@@ -743,7 +822,6 @@ def create_baseline_scorecard_notebook():
                 "for k, v in metrics_lr.items():\n",
                 "    print(f'► {k:20s}: {v:.4f}')\n",
                 "\n",
-                "# Trực quan hóa đường cong ROC và KS Curve\n",
                 "fig, axes = plt.subplots(1, 2, figsize=(14, 5))\n",
                 "\n",
                 "fpr, tpr, _ = roc_curve(y_val, y_pred_proba_val)\n",
@@ -754,7 +832,6 @@ def create_baseline_scorecard_notebook():
                 "axes[0].set_ylabel('True Positive Rate (TPR)')\n",
                 "axes[0].legend(loc='lower right')\n",
                 "\n",
-                "# KS Curve\n",
                 "ks_idx = np.argmax(tpr - fpr)\n",
                 "axes[1].plot(fpr, label='FPR (Tỷ lệ báo động nhầm)', color='#2a9d8f')\n",
                 "axes[1].plot(tpr, label='TPR (Tỷ lệ bắt nợ xấu)', color='#e76f51')\n",
@@ -792,13 +869,14 @@ def create_advanced_tree_notebook():
                 "Theo chuẩn quy trình `AGENTS.md` (Bước 6 & 7):\n",
                 "1. **So sánh với Mô Hình Học Máy Nâng Cao**: Đào tạo và tinh chỉnh **LightGBM** và **XGBoost** với 5-Fold Cross Validation.\n",
                 "2. **Tối ưu mất cân bằng dữ liệu**: Sử dụng tham số `scale_pos_weight` / `is_unbalance=True` và Early Stopping.\n",
-                "3. **So sánh toàn diện**: So sánh Baseline (Logistic Regression) vs. LightGBM vs. XGBoost trên các thước đo **ROC-AUC**, **PR-AUC**, **KS Statistic**, **Gini**, và **Calibration**."
+                "3. **So sánh toàn diện**: So sánh Baseline (Logistic Regression) vs. LightGBM vs. XGBoost trên các thước đo **ROC-AUC**, **PR-AUC**, **KS Statistic**, **Gini**, và **Calibration Curve (Brier Score)**."
             ]
         },
         {
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "import warnings\n",
                 "warnings.filterwarnings('ignore')\n",
@@ -811,6 +889,7 @@ def create_advanced_tree_notebook():
                 "\n",
                 "from sklearn.model_selection import StratifiedKFold\n",
                 "from sklearn.metrics import roc_auc_score, precision_recall_curve, auc, roc_curve, brier_score_loss\n",
+                "from sklearn.calibration import calibration_curve\n",
                 "import lightgbm as lgb\n",
                 "import xgboost as xgb\n",
                 "\n",
@@ -848,6 +927,7 @@ def create_advanced_tree_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "folds = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\n",
                 "oof_lgb = np.zeros(len(df))\n",
@@ -906,6 +986,7 @@ def create_advanced_tree_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "mean_importance = feature_importance_df.groupby('feature')['importance'].mean().sort_values(ascending=False).reset_index()\n",
                 "\n",
@@ -929,6 +1010,7 @@ def create_advanced_tree_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "oof_xgb = np.zeros(len(df))\n",
                 "scale_pos = (len(y) - sum(y)) / sum(y)\n",
@@ -969,13 +1051,14 @@ def create_advanced_tree_notebook():
             "metadata": {},
             "source": [
                 "---\n",
-                "## 4. 🏆 Bảng So Sánh Hiệu Năng Mô Hình (Model Comparison Matrix)"
+                "## 4. 🏆 Bảng So Sánh Hiệu Năng Mô Hình & Reliability Calibration Plot"
             ]
         },
         {
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "def get_metrics_summary(name, y_true, y_prob):\n",
                 "    auc_val = roc_auc_score(y_true, y_prob)\n",
@@ -999,7 +1082,22 @@ def create_advanced_tree_notebook():
                 "\n",
                 "comparison_df = pd.DataFrame([res_lgb, res_xgb])\n",
                 "print('=== BẢNG SO SÁNH HIỆU NĂNG CÁC MÔ HÌNH HỌC MÁY NÂNG CAO ===')\n",
-                "print(comparison_df.to_string(index=False))"
+                "print(comparison_df.to_string(index=False))\n",
+                "\n",
+                "# Trực quan hóa Calibration Curve\n",
+                "plt.figure(figsize=(8, 6))\n",
+                "fraction_of_pos_lgb, mean_pred_value_lgb = calibration_curve(y, oof_lgb, n_bins=10)\n",
+                "fraction_of_pos_xgb, mean_pred_value_xgb = calibration_curve(y, oof_xgb, n_bins=10)\n",
+                "\n",
+                "plt.plot(mean_pred_value_lgb, fraction_of_pos_lgb, 's-', label='LightGBM', color='#2a9d8f')\n",
+                "plt.plot(mean_pred_value_xgb, fraction_of_pos_xgb, 'o-', label='XGBoost', color='#e76f51')\n",
+                "plt.plot([0, 1], [0, 1], 'k--', label='Perfectly Calibrated')\n",
+                "plt.title('Biểu Đồ Hiệu Chỉnh Xác Suất (Probability Calibration Curve)', fontweight='bold')\n",
+                "plt.xlabel('Mean Predicted Probability')\n",
+                "plt.ylabel('Fraction of Positives')\n",
+                "plt.legend()\n",
+                "plt.tight_layout()\n",
+                "plt.show()"
             ]
         }
     ]
@@ -1026,13 +1124,15 @@ def create_shap_fairness_notebook():
                 "## 📌 Mục Tiêu Giải Thích Mô Hình & Đánh Giá Tính Công Bằng\n",
                 "Theo quy định bắt buộc tại bước 8 & 9 trong `AGENTS.md`:\n",
                 "1. **Giải thích mô hình (Explainability)**: Áp dụng **SHAP (SHapley Additive exPlanations)** để giải thích ảnh hưởng của các thuộc tính thay thế (Alternative Features) ở mức độ toàn cục (Global) và cá thể (Local).\n",
-                "2. **Phân tích tính công bằng (Fairness & Bias Analysis)**: Đánh giá mức độ bình đẳng của mô hình giữa các nhóm khách hàng theo giới tính (`CODE_GENDER`), nhóm tuổi, và loại hình cư trú."
+                "2. **SHAP Dependence Analysis**: Khảo sát tính phi tuyến của các đặc trưng thay thế quan trọng (`DAYS_LAST_PHONE_CHANGE`, `EXT_SOURCE_2`).\n",
+                "3. **Phân tích tính công bằng (Fairness & Bias Analysis)**: Đánh giá mức độ bình đẳng của mô hình giữa các nhóm khách hàng theo giới tính (`CODE_GENDER`), nhóm tuổi, và loại hình cư trú."
             ]
         },
         {
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "import warnings\n",
                 "warnings.filterwarnings('ignore')\n",
@@ -1082,6 +1182,7 @@ def create_shap_fairness_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "model_lgb = lgb.LGBMClassifier(\n",
                 "    objective='binary',\n",
@@ -1109,6 +1210,7 @@ def create_shap_fairness_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "# Lấy mẫu 2,000 khách hàng để tính toán SHAP nhanh chóng\n",
                 "sample_X = X.sample(n=min(2000, len(X)), random_state=42)\n",
@@ -1141,6 +1243,7 @@ def create_shap_fairness_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "sample_idx = 0\n",
                 "exp = shap.Explanation(\n",
@@ -1170,6 +1273,7 @@ def create_shap_fairness_notebook():
             "cell_type": "code",
             "execution_count": None,
             "metadata": {},
+            "outputs": [],
             "source": [
                 "# Đánh giá hiệu năng ROC-AUC theo Giới tính (CODE_GENDER)\n",
                 "preds = model_lgb.predict_proba(X)[:, 1]\n",
