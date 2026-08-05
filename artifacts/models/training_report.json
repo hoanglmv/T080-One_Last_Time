@@ -1,0 +1,250 @@
+{
+  "model_version": "hc-poc-20260805T162444Z-52e96b89",
+  "feature_set": "full",
+  "seed": 42,
+  "data_profile": {
+    "source": "data/raw/home-credit-default-risk/application_train.csv",
+    "source_sha256": "52e96b895b1112e1c853f670e58372719c8441c5ed1c57ac2f7fad559d784f5f",
+    "rows": 50000,
+    "columns": 418,
+    "target_semantics": "TARGET=1 biểu thị payment difficulties theo định nghĩa ẩn danh của cuộc thi; không đồng nhất mặc định với Basel 90+ DPD hoặc mọi định nghĩa 'default'.",
+    "target_counts": {
+      "0": 45974,
+      "1": 4026
+    },
+    "target_rate": 0.08052,
+    "duplicate_applicant_ids": 0,
+    "infinite_numeric_values": 0,
+    "days_employed_sentinel_remaining": 0,
+    "top_missing_columns": [
+      {
+        "field": "CC_AMT_PAYMENT_CURRENT_MEAN",
+        "missing_rate": 0.80548
+      },
+      {
+        "field": "CC_AMT_PAYMENT_CURRENT_MAX",
+        "missing_rate": 0.80548
+      },
+      {
+        "field": "CC_AMT_PAYMENT_CURRENT_MIN",
+        "missing_rate": 0.80548
+      },
+      {
+        "field": "BUREAU_AMT_ANNUITY_MAX",
+        "missing_rate": 0.74086
+      },
+      {
+        "field": "BUREAU_AMT_ANNUITY_MIN",
+        "missing_rate": 0.74086
+      },
+      {
+        "field": "BUREAU_AMT_ANNUITY_MEAN",
+        "missing_rate": 0.74086
+      },
+      {
+        "field": "CC_FE_CC_UTILIZATION_MAX",
+        "missing_rate": 0.72244
+      },
+      {
+        "field": "CC_FE_CC_UTILIZATION_MEAN",
+        "missing_rate": 0.72244
+      },
+      {
+        "field": "CC_FE_CC_UTILIZATION_MIN",
+        "missing_rate": 0.72244
+      },
+      {
+        "field": "CC_AMT_DRAWINGS_CURRENT_SUM",
+        "missing_rate": 0.7197
+      },
+      {
+        "field": "CC_AMT_PAYMENT_TOTAL_CURRENT_MIN",
+        "missing_rate": 0.7197
+      },
+      {
+        "field": "CC_RECORD_COUNT",
+        "missing_rate": 0.7197
+      },
+      {
+        "field": "CC_AMT_PAYMENT_TOTAL_CURRENT_MAX",
+        "missing_rate": 0.7197
+      },
+      {
+        "field": "CC_AMT_PAYMENT_TOTAL_CURRENT_MEAN",
+        "missing_rate": 0.7197
+      },
+      {
+        "field": "CC_AMT_PAYMENT_CURRENT_SUM",
+        "missing_rate": 0.7197
+      },
+      {
+        "field": "CC_AMT_PAYMENT_TOTAL_CURRENT_SUM",
+        "missing_rate": 0.7197
+      },
+      {
+        "field": "CC_AMT_CREDIT_LIMIT_ACTUAL_MIN",
+        "missing_rate": 0.7197
+      },
+      {
+        "field": "CC_AMT_BALANCE_MAX",
+        "missing_rate": 0.7197
+      },
+      {
+        "field": "CC_AMT_BALANCE_MIN",
+        "missing_rate": 0.7197
+      },
+      {
+        "field": "CC_MONTHS_BALANCE_SUM",
+        "missing_rate": 0.7197
+      }
+    ],
+    "time_columns_present": []
+  },
+  "split": {
+    "strategy": "stratified_random_70_15_15_no_temporal_claim",
+    "time_column": null,
+    "train_rows": 35000,
+    "validation_rows": 7500,
+    "test_rows": 7500
+  },
+  "selected_feature_count": 411,
+  "dropped_features": {
+    "missing_gt_95pct": [],
+    "constant": [
+      "FLAG_DOCUMENT_10",
+      "FLAG_DOCUMENT_12",
+      "CC_SK_DPD_MIN",
+      "CC_SK_DPD_DEF_MIN"
+    ],
+    "high_cardinality_category": []
+  },
+  "candidate_validation": {
+    "logistic_regression": {
+      "metrics": {
+        "roc_auc": 0.7681461371214332,
+        "pr_auc": 0.22266558721988264,
+        "average_precision": 0.22391264462004012,
+        "ks": 0.4254429096049538,
+        "gini": 0.5362922742428664,
+        "brier": 0.19072418290602897,
+        "log_loss": 0.5661930782825898,
+        "ece_10": 0.3103025998730344,
+        "default_rate": 0.08053333333333333,
+        "mean_prediction": 0.39083593320636767,
+        "n": 7500.0
+      },
+      "stability": null,
+      "selection_score": 0.7681461371214332
+    },
+    "lightgbm": {
+      "metrics": {
+        "roc_auc": 0.7826789884912646,
+        "pr_auc": 0.24880207524785827,
+        "average_precision": 0.2503485918993092,
+        "ks": 0.4234943762388408,
+        "gini": 0.5653579769825292,
+        "brier": 0.06724671259597814,
+        "log_loss": 0.24120309166791237,
+        "ece_10": 0.006340546046092684,
+        "default_rate": 0.08053333333333333,
+        "mean_prediction": 0.07793934867293821,
+        "n": 7500.0
+      },
+      "stability": null,
+      "selection_score": 0.7826789884912646
+    }
+  },
+  "champion": "lightgbm",
+  "calibration_validation_raw": {
+    "roc_auc": 0.7826789884912646,
+    "pr_auc": 0.24880207524785827,
+    "average_precision": 0.2503485918993092,
+    "ks": 0.4234943762388408,
+    "gini": 0.5653579769825292,
+    "brier": 0.06724671259597814,
+    "log_loss": 0.24120309166791237,
+    "ece_10": 0.006340546046092684,
+    "default_rate": 0.08053333333333333,
+    "mean_prediction": 0.07793934867293821,
+    "n": 7500.0
+  },
+  "calibration_validation_platt": {
+    "roc_auc": 0.7826789884912646,
+    "pr_auc": 0.24880207524785827,
+    "average_precision": 0.2503485918993092,
+    "ks": 0.4234943762388408,
+    "gini": 0.5653579769825292,
+    "brier": 0.06727395863179354,
+    "log_loss": 0.24113784913816727,
+    "ece_10": 0.0057744066444833046,
+    "default_rate": 0.08053333333333333,
+    "mean_prediction": 0.08052960376177158,
+    "n": 7500.0
+  },
+  "champion_test_metrics": {
+    "roc_auc": 0.7646185618690555,
+    "pr_auc": 0.26472575528018955,
+    "average_precision": 0.26569145454558946,
+    "ks": 0.40459485103179116,
+    "gini": 0.529237123738111,
+    "brier": 0.06666811743881783,
+    "log_loss": 0.24261529239384436,
+    "ece_10": 0.004716351398762951,
+    "default_rate": 0.08053333333333333,
+    "mean_prediction": 0.08031582382639758,
+    "n": 7500.0
+  },
+  "score_psi_train_vs_test": 0.0020964152131728573,
+  "temporal_stability": {
+    "available": false,
+    "reason": "Home Credit 2018 không có WEEK_NUM/date_decision. Không dùng SK_ID hoặc relative DAYS làm timestamp giả."
+  },
+  "fairness_by_gender": {
+    "available": true,
+    "threshold": 0.06719723618428573,
+    "groups": [
+      {
+        "group": "F",
+        "n": 4966,
+        "default_rate": 0.07088199758356827,
+        "predicted_high_risk_rate": 0.3266210229561015,
+        "mean_prediction": 0.07409140548500591,
+        "tpr": 0.6818181818181818,
+        "fpr": 0.29952319029042046,
+        "brier": 0.060074652215143146,
+        "roc_auc": 0.7550753388895456
+      },
+      {
+        "group": "M",
+        "n": 2533,
+        "default_rate": 0.09948677457560205,
+        "predicted_high_risk_rate": 0.4168969601263324,
+        "mean_prediction": 0.09252604262476406,
+        "tpr": 0.7658730158730159,
+        "fpr": 0.3783428320911881,
+        "brier": 0.07961953314708134,
+        "roc_auc": 0.7708676923933391
+      }
+    ],
+    "gaps": {
+      "max_min_predicted_high_risk_rate_gap": 0.09027593717023091,
+      "max_min_tpr_gap": 0.08405483405483416,
+      "max_min_fpr_gap": 0.07881964180076761,
+      "max_min_brier_gap": 0.019544880931938194,
+      "max_min_roc_auc_gap": 0.015792353503793488
+    },
+    "limitation": "Chỉ là kiểm tra chẩn đoán trên dataset; không xác lập tuân thủ pháp lý hoặc fairness nhân quả."
+  },
+  "decision_threshold_for_diagnostics_only": 0.06719723618428573,
+  "risk_band_quantile_thresholds": [
+    0.04866800511669406,
+    0.11072345059920734,
+    0.2695488610398227
+  ],
+  "limitations": [
+    "Không có temporal key trong Home Credit 2018 nên chưa có out-of-time validation.",
+    "Risk band dựa trên quantile validation, không phải lending policy hay risk appetite đã phê duyệt.",
+    "Fairness report là chẩn đoán dataset, không phải chứng nhận tuân thủ hoặc fairness nhân quả.",
+    "POC form dùng application-level features; full relational history cần JSON/pipeline nâng cao."
+  ]
+}

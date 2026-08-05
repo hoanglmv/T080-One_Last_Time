@@ -1,4 +1,76 @@
-# 🤖 AI20K Agent Template
+# Alternative Credit Scoring — Home Credit POC
+
+POC end-to-end cho bài toán dự đoán `payment difficulty` trên Home Credit 2018:
+
+- leakage-aware EDA và feature engineering dùng chung giữa training/serving;
+- `LogisticRegression` baseline, `LightGBM` champion, early stopping và Platt calibration;
+- ROC-AUC, PR-AUC, KS, Gini, Brier, ECE, PSI, temporal-stability adapter và fairness diagnostic;
+- FastAPI + form web: nhập hồ sơ → score → risk band → local feature contributions;
+- LLM explanation tùy chọn, chỉ diễn đạt reason codes và không tham gia tính điểm.
+
+> Đây là POC nghiên cứu. `TARGET` là payment difficulty theo định nghĩa cuộc thi; score không phải CIC và không được dùng làm quyết định duyệt/từ chối tự động. Home Credit 2018 không có time key nên kết quả hiện tại không chứng minh temporal stability.
+
+Tài liệu chính: [Implementation Plan](IMPLEMENTATION_PLAN.md), [Model Card](artifacts/models/MODEL_CARD.md), [training report](artifacts/models/training_report.json) và [EDA report](artifacts/reports/eda_report.json).
+
+## Chạy POC
+
+```bash
+uv sync --frozen
+
+# Chỉ cần chạy lại nếu muốn tái tạo artifact từ raw data
+uv run python -m src.credit_scoring.cli eda \
+  --data-dir data/raw/home-credit-default-risk
+uv run python -m src.credit_scoring.cli train \
+  --data-dir data/raw/home-credit-default-risk \
+  --feature-set serving
+
+uv run uvicorn src.main:app --reload --port 8000
+```
+
+Mở:
+
+- POC form: <http://localhost:8000/api/v1/credit/demo>
+- Swagger: <http://localhost:8000/docs>
+- Model metadata: <http://localhost:8000/api/v1/credit/model>
+- Readiness: <http://localhost:8000/ready>
+
+API mẫu:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/credit/score \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "application": {
+      "AMT_INCOME_TOTAL": 180000,
+      "AMT_CREDIT": 450000,
+      "AMT_ANNUITY": 27000,
+      "AMT_GOODS_PRICE": 420000,
+      "DAYS_BIRTH": -12775,
+      "DAYS_EMPLOYED": -1825,
+      "CNT_CHILDREN": 1,
+      "CNT_FAM_MEMBERS": 3,
+      "EXT_SOURCE_1": 0.55,
+      "EXT_SOURCE_2": 0.62,
+      "EXT_SOURCE_3": 0.48
+    },
+    "explain_with_llm": false,
+    "top_k": 6
+  }'
+```
+
+Để bật narration qua LLM, cấu hình `OPENAI_API_KEY`, đặt `ENABLE_LLM_EXPLANATIONS=true` và gửi `explain_with_llm=true`. Score và reason codes vẫn hoạt động nếu LLM lỗi hoặc bị tắt.
+
+Kiểm tra project:
+
+```bash
+uv run ruff check src tests
+uv run mypy src
+uv run pytest
+```
+
+---
+
+## Hạ tầng template ban đầu
 
 Template chính thức cho học viên **VinUni AI20K Build Phase** — cung cấp sẵn cấu trúc dự án, code mẫu, và hướng dẫn kỹ thuật chi tiết để xây dựng AI Agent đạt điểm cao (35+/50).
 
