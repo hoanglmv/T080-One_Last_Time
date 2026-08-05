@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Credit Scoring — Feature Roadmap</title>
+    <meta name="description" content="Hệ thống AI chấm điểm tín dụng: Mô tả bài toán, Khảo sát phương pháp, Feature Roadmap và Thiết kế luồng dữ liệu.">
+
+    <!-- === FONTS: Clash Display + Satoshi from Fontshare === -->
+    <link rel="preconnect" href="https://api.fontshare.com">
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@400;500;600;700&f[]=satoshi@300;400;500;700&display=swap">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (NEON CYBER THEME)
+           Change these to change the whole look
+           =========================================== */
+        :root {
+            /* Colors */
+            --stage-bg: #050a14;
+            --slide-bg: #0a0f1c;
+            --surface-card: rgba(15, 25, 45, 0.8);
+            --surface-elevated: rgba(20, 35, 60, 0.6);
+            --text-primary: #e8ecf4;
+            --text-secondary: #7a8aaa;
+            --text-muted: #4a5a7a;
+            --accent-cyan: #00ffcc;
+            --accent-magenta: #ff00aa;
+            --accent-blue: #4488ff;
+            --accent-amber: #ffaa00;
+            --accent-red: #ff4466;
+            --accent-green: #44ff88;
+            --accent-cyan-glow: rgba(0, 255, 204, 0.25);
+            --accent-magenta-glow: rgba(255, 0, 170, 0.15);
+            --border: rgba(0, 255, 204, 0.08);
+            --border-subtle: rgba(255, 255, 255, 0.04);
+
+            /* Typography — authored at 1920×1080 */
+            --font-display: 'Clash Display', sans-serif;
+            --font-body: 'Satoshi', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+
+            /* Spacing */
+            --slide-padding: 48px;
+
+            /* Animation */
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.6s;
+        }
+
+        /* ===========================================
+           BASE RESET
+           =========================================== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* ===========================================
+           VIEWPORT BASE — MANDATORY FIXED 16:9 STAGE
+           (Full contents of viewport-base.css)
+           =========================================== */
+        html, body {
+            width: 100%; height: 100%; margin: 0;
+            overflow: hidden;
+            background: var(--stage-bg, #000);
+        }
+
+        .deck-viewport {
+            position: fixed; inset: 0;
+            overflow: hidden;
+            background: var(--stage-bg, #000);
+        }
+
+        .deck-stage {
+            position: absolute; left: 0; top: 0;
+            width: 1920px; height: 1080px;
+            overflow: hidden;
+            transform-origin: 0 0;
+            background: var(--slide-bg, #fff);
+        }
+
+        .slide {
+            position: absolute; inset: 0;
+            width: 1920px; height: 1080px;
+            overflow: hidden;
+            display: block;
+            visibility: hidden; opacity: 0; pointer-events: none;
+            background: var(--slide-bg, #fff);
+        }
+
+        .slide.active, .slide.visible {
+            visibility: visible; opacity: 1; pointer-events: auto;
+            z-index: 1;
+        }
+
+        img, video, canvas, svg { max-width: 100%; max-height: 100%; }
+
+        .deck-controls {
+            position: fixed; left: 50%; bottom: 22px;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
+
+        @media print {
+            html, body { width: 1920px; height: auto; overflow: visible; background: #fff; }
+            .deck-viewport { position: static; overflow: visible; background: #fff; }
+            .deck-stage { position: static; width: auto; height: auto; transform: none !important; background: none; }
+            .slide { position: relative; display: block !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; width: 1920px; height: 1080px; break-after: page; page-break-after: always; }
+            .slide:last-child { break-after: auto; page-break-after: auto; }
+            .deck-controls { display: none !important; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+        }
+
+        /* ===========================================
+           SHARED BACKGROUND EFFECTS
+           =========================================== */
+
+        /* Grid pattern overlay */
+        .slide::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 255, 204, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 204, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Atmospheric gradient orbs */
+        .slide::after {
+            content: '';
+            position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse at 10% 90%, rgba(0, 255, 204, 0.08) 0%, transparent 40%),
+                radial-gradient(ellipse at 90% 10%, rgba(255, 0, 170, 0.05) 0%, transparent 40%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* === NOISE TEXTURE === */
+        .slide .noise {
+            position: absolute; inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.35;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            background-size: 256px 256px;
+        }
+
+        /* ===========================================
+           SHARED TYPOGRAPHY
+           =========================================== */
+        .slide-content {
+            position: relative;
+            z-index: 1;
+            width: 100%; height: 100%;
+            padding: var(--slide-padding);
+        }
+
+        /* Overline label */
+        .overline {
+            font-family: var(--font-mono);
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--accent-cyan);
+        }
+
+        /* Section number */
+        .section-num {
+            font-family: var(--font-display);
+            font-size: 140px;
+            font-weight: 700;
+            color: rgba(0, 255, 204, 0.06);
+            line-height: 1;
+            position: absolute;
+            top: 40px;
+            right: 72px;
+            z-index: 0;
+        }
+
+        /* Slide title */
+        .slide-title {
+            font-family: var(--font-display);
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.1;
+        }
+
+        .slide-title .accent { color: var(--accent-cyan); text-shadow: 0 0 30px var(--accent-cyan-glow); }
+        .slide-title .magenta { color: var(--accent-magenta); }
+
+        /* Body text */
+        .body-text {
+            font-family: var(--font-body);
+            font-size: 28px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* === TAGS/BADGES === */
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-mono);
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 8px 18px;
+            border-radius: 100px;
+            white-space: nowrap;
+        }
+        .tag-high { color: #44ff88; background: rgba(68, 255, 136, 0.1); border: 1px solid rgba(68, 255, 136, 0.2); }
+        .tag-medium { color: #ffaa00; background: rgba(255, 170, 0, 0.1); border: 1px solid rgba(255, 170, 0, 0.2); }
+        .tag-low { color: #ff4466; background: rgba(255, 68, 102, 0.1); border: 1px solid rgba(255, 68, 102, 0.2); }
+        .tag-info { color: var(--accent-cyan); background: rgba(0, 255, 204, 0.08); border: 1px solid rgba(0, 255, 204, 0.15); }
+        .tag-priority { color: var(--accent-magenta); background: rgba(255, 0, 170, 0.08); border: 1px solid rgba(255, 0, 170, 0.15); }
+
+        /* === CARDS === */
+        .card {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 28px 32px;
+            backdrop-filter: blur(12px);
+        }
+
+        .card-title {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .card-body {
+            font-family: var(--font-body);
+            font-size: 17px;
+            color: var(--text-secondary);
+            line-height: 1.55;
+        }
+
+        /* === VERTICAL ACCENT LINE (LEFT) === */
+        .accent-line-left {
+            position: absolute;
+            left: 0; top: 15%; bottom: 15%;
+            width: 3px;
+            background: linear-gradient(to bottom, transparent, var(--accent-cyan), var(--accent-magenta), transparent);
+        }
+
+        /* === SLIDE COUNTER === */
+        .slide-counter {
+            position: absolute;
+            bottom: 28px; right: 72px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 0.08em;
+            z-index: 2;
+        }
+
+        /* ===========================================
+           ENTRANCE ANIMATIONS
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+        .reveal-left {
+            opacity: 0;
+            transform: translateX(-30px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+        .reveal-scale {
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal,
+        .slide.visible .reveal-left,
+        .slide.visible .reveal-scale {
+            opacity: 1;
+            transform: translateY(0) translateX(0) scale(1);
+        }
+
+        /* Stagger delays */
+        .d1 { transition-delay: 0.1s; }
+        .d2 { transition-delay: 0.2s; }
+        .d3 { transition-delay: 0.3s; }
+        .d4 { transition-delay: 0.4s; }
+        .d5 { transition-delay: 0.5s; }
+        .d6 { transition-delay: 0.6s; }
+        .d7 { transition-delay: 0.7s; }
+        .d8 { transition-delay: 0.8s; }
+        .d9 { transition-delay: 0.9s; }
+        .d10 { transition-delay: 1.0s; }
+
+        /* ===========================================
+           SLIDE 1: PROBLEM STATEMENT
+           =========================================== */
+        .problem-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            height: 100%;
+            align-content: start;
+        }
+
+        .problem-header {
+            grid-column: 1 / -1;
+            padding-bottom: 18px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 0;
+        }
+
+        .pain-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 32px 36px;
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pain-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+        }
+
+        .pain-card.core::before { background: var(--accent-red); box-shadow: 0 0 20px rgba(255, 68, 102, 0.3); }
+        .pain-card.pain::before { background: var(--accent-amber); box-shadow: 0 0 20px rgba(255, 170, 0, 0.2); }
+        .pain-card.goal::before { background: var(--accent-cyan); box-shadow: 0 0 20px var(--accent-cyan-glow); }
+
+        .pain-card .pain-icon {
+            width: 60px; height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+        }
+        .pain-icon.red { background: rgba(255, 68, 102, 0.12); border: 1px solid rgba(255, 68, 102, 0.25); }
+        .pain-icon.amber { background: rgba(255, 170, 0, 0.12); border: 1px solid rgba(255, 170, 0, 0.25); }
+        .pain-icon.cyan { background: rgba(0, 255, 204, 0.1); border: 1px solid rgba(0, 255, 204, 0.2); }
+
+        .pain-card .pain-title {
+            font-family: var(--font-display);
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .pain-card .pain-desc {
+            font-family: var(--font-body);
+            font-size: 22px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .pain-card .pain-highlight {
+            font-family: var(--font-body);
+            font-size: 20px;
+            color: var(--accent-cyan);
+            line-height: 1.6;
+            padding: 16px 20px;
+            background: rgba(0, 255, 204, 0.04);
+            border-left: 4px solid rgba(0, 255, 204, 0.4);
+            border-radius: 0 10px 10px 0;
+        }
+
+        /* Bullet lists inside pain cards */
+        .pain-bullets {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .pain-bullets li {
+            font-family: var(--font-body);
+            font-size: 21px;
+            color: var(--text-secondary);
+            padding-left: 22px;
+            position: relative;
+            line-height: 1.55;
+        }
+        .pain-bullets li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--accent-cyan);
+        }
+
+        /* ===========================================
+           SLIDE 2: SURVEY / BACKGROUND
+           =========================================== */
+        .survey-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            height: 100%;
+            align-content: start;
+        }
+
+        .survey-header {
+            grid-column: 1 / -1;
+            padding-bottom: 18px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 0;
+        }
+
+        .survey-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 32px 36px;
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .survey-card.full-width { grid-column: 1 / -1; }
+
+        .survey-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+        }
+        .survey-card.bg::before { background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan)); }
+        .survey-card.trad::before { background: var(--accent-amber); }
+        .survey-card.modern::before { background: var(--accent-cyan); box-shadow: 0 0 20px var(--accent-cyan-glow); }
+        .survey-card.challenge::before { background: var(--accent-magenta); }
+
+        .survey-card .survey-title {
+            font-family: var(--font-display);
+            font-size: 27px;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.2;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .survey-card .survey-body {
+            font-family: var(--font-body);
+            font-size: 21px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .survey-card .survey-highlight {
+            font-family: var(--font-body);
+            font-size: 20px;
+            line-height: 1.6;
+            padding: 14px 20px;
+            border-radius: 0 10px 10px 0;
+        }
+        .survey-highlight.pro {
+            color: var(--accent-green);
+            background: rgba(68, 255, 136, 0.04);
+            border-left: 2px solid rgba(68, 255, 136, 0.3);
+        }
+        .survey-highlight.con {
+            color: var(--accent-red);
+            background: rgba(255, 68, 102, 0.04);
+            border-left: 2px solid rgba(255, 68, 102, 0.3);
+        }
+        .survey-highlight.neutral {
+            color: var(--accent-cyan);
+            background: rgba(0, 255, 204, 0.04);
+            border-left: 2px solid rgba(0, 255, 204, 0.3);
+        }
+        .survey-highlight.warn {
+            color: var(--accent-amber);
+            background: rgba(255, 170, 0, 0.04);
+            border-left: 2px solid rgba(255, 170, 0, 0.3);
+        }
+
+        .survey-companies {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .company-tag {
+            font-family: var(--font-mono);
+            font-size: 15.5px;
+            font-weight: 600;
+            padding: 8px 18px;
+            border-radius: 100px;
+            color: var(--accent-cyan);
+            background: rgba(0, 255, 204, 0.06);
+            border: 1px solid rgba(0, 255, 204, 0.15);
+        }
+
+        /* ===========================================
+           SLIDE 3: FEATURE TABLE
+           =========================================== */
+        .feature-table-layout {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .feature-table-header {
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .feature-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-family: var(--font-body);
+            font-size: 18.5px;
+        }
+
+        .feature-table thead th {
+            font-family: var(--font-mono);
+            font-size: 14.5px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 2px solid var(--border);
+            white-space: nowrap;
+        }
+
+        .feature-table tbody td {
+            padding: 22px 20px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-subtle);
+            vertical-align: top;
+            font-size: 17.5px;
+            line-height: 1.6;
+        }
+
+        .feature-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .feature-table tbody tr {
+            transition: background 0.3s ease;
+        }
+        .feature-table tbody tr:hover {
+            background: rgba(0, 255, 204, 0.03);
+        }
+
+        .feature-table .cell-feature {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 22px;
+            color: var(--text-primary);
+            min-width: 200px;
+        }
+
+        .feature-table .cell-sub {
+            font-family: var(--font-body);
+            font-size: 16px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .metric-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .metric-list li {
+            font-size: 16.5px;
+            padding-left: 18px;
+            position: relative;
+        }
+        .metric-list li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--accent-cyan);
+            font-size: 12px;
+        }
+
+        .module-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .module-list li {
+            font-size: 16.5px;
+            padding-left: 18px;
+            position: relative;
+        }
+        .module-list li::before {
+            content: '◉';
+            position: absolute;
+            left: 0;
+            color: var(--accent-magenta);
+            font-size: 10px;
+            top: 4px;
+        }
+
+        .success-factor {
+            font-family: var(--font-body);
+            font-size: 16.5px;
+            color: var(--accent-cyan);
+            font-style: italic;
+            line-height: 1.55;
+        }
+
+        /* ===========================================
+           SLIDE 4: AGENTIC WORKFLOW & ARCHITECTURE
+           =========================================== */
+        .flow-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: 100%;
+        }
+
+        .flow-header {
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Top Bar: Data In & Data Out Overview */
+        .agent-io-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr 340px;
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .io-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            backdrop-filter: blur(12px);
+        }
+
+        .io-card.in { border-color: rgba(0, 255, 204, 0.25); }
+        .io-card.out { border-color: rgba(255, 0, 170, 0.25); background: rgba(255, 0, 170, 0.04); }
+
+        .io-title {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Central Agent Orchestrator Box */
+        .orchestrator-box {
+            background: linear-gradient(135deg, rgba(0, 255, 204, 0.1), rgba(255, 0, 170, 0.1));
+            border: 2px solid var(--accent-cyan);
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.2);
+            border-radius: 16px;
+            padding: 20px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .orchestrator-title {
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .orchestrator-desc {
+            font-family: var(--font-body);
+            font-size: 18px;
+            color: var(--text-secondary);
+        }
+
+        /* 4 Tools Sequence Grid */
+        .tools-sequence-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            position: relative;
+            margin-top: 4px;
+        }
+
+        .tool-node {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 22px 24px;
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .tool-node:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 255, 204, 0.1);
+        }
+
+        .tool-node-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .tool-step-badge {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            color: var(--stage-bg);
+            background: var(--accent-cyan);
+        }
+        .tool-node:nth-child(2) .tool-step-badge { background: var(--accent-blue); }
+        .tool-node:nth-child(3) .tool-step-badge { background: var(--accent-amber); }
+        .tool-node:nth-child(4) .tool-step-badge { background: var(--accent-magenta); }
+
+        .tool-name {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .tool-task {
+            font-family: var(--font-body);
+            font-size: 17px;
+            color: var(--text-secondary);
+            line-height: 1.55;
+        }
+
+        .tool-output-box {
+            font-family: var(--font-mono);
+            font-size: 14.5px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-left: 4px solid var(--accent-cyan);
+            color: var(--text-primary);
+        }
+
+        /* Flow Arrow Connecting Tools */
+        .seq-arrow {
+            position: absolute;
+            right: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            font-size: 18px;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 10px var(--accent-cyan-glow);
+        }
+
+        /* Comprehensive Report Card at Bottom */
+        .report-summary-card {
+            background: rgba(0, 255, 204, 0.04);
+            border: 1px dashed rgba(0, 255, 204, 0.4);
+            border-radius: 14px;
+            padding: 18px 26px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 6px;
+        }
+
+        /* ===========================================
+           PROGRESS INDICATOR
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0; left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+            z-index: 1001;
+            transition: width 0.4s var(--ease-out-expo);
+        }
+
+        /* ===========================================
+           NAVIGATION DOTS
+           =========================================== */
+        .nav-dots {
+            position: fixed;
+            right: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 1000;
+        }
+        .nav-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 0;
+        }
+        .nav-dot.active {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--accent-cyan-glow);
+            transform: scale(1.3);
+        }
+        .nav-dot:hover { background: rgba(0, 255, 204, 0.5); }
+
+        /* ===========================================
+           INLINE EDITING (DEFAULT)
+           =========================================== */
+        .edit-hotzone {
+            position: fixed; top: 0; left: 0;
+            width: 80px; height: 80px;
+            z-index: 10000;
+            cursor: pointer;
+        }
+        .edit-toggle {
+            position: fixed; top: 16px; left: 16px;
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 10001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .edit-toggle.show,
+        .edit-toggle.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .edit-toggle.active {
+            background: var(--accent-cyan);
+            color: var(--stage-bg);
+            border-color: var(--accent-cyan);
+        }
+
+        [contenteditable="true"] {
+            outline: 2px dashed rgba(0, 255, 204, 0.3);
+            outline-offset: 4px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Progress bar -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Navigation dots -->
+    <nav class="nav-dots" id="navDots" aria-label="Slide navigation"></nav>
+
+    <!-- Inline editing controls -->
+    <div class="edit-hotzone" id="editHotzone"></div>
+    <button class="edit-toggle" id="editToggle" title="Edit mode (E)">✏️</button>
+
+    <div class="deck-viewport">
+        <main class="deck-stage" id="deckStage">
+
+            <!-- ===========================================
+                 SLIDE 1: MÔ TẢ BÀI TOÁN (PROBLEM STATEMENT)
+                 =========================================== -->
+            <section class="slide active" aria-label="Mô tả bài toán">
+                <div class="noise"></div>
+                <div class="accent-line-left"></div>
+                <span class="section-num">01</span>
+                <div class="slide-content">
+                    <div class="problem-layout">
+                        <!-- Header -->
+                        <div class="problem-header reveal d1">
+                            <div class="overline" style="margin-bottom: 12px;">Slide 1 — Problem Statement</div>
+                            <h2 class="slide-title" style="font-size: 60px;">Mô Tả <span class="accent">Bài Toán</span></h2>
+                        </div>
+
+                        <!-- Card 1: Vấn đề cốt lõi -->
+                        <div class="pain-card core reveal d2">
+                            <div class="pain-icon red">🚫</div>
+                            <div class="pain-title">Vấn Đề Cốt Lõi</div>
+                            <p class="pain-desc">Các tổ chức tài chính hiện nay phụ thuộc quá nhiều vào lịch sử tín dụng truyền thống (dữ liệu CIC, sao kê ngân hàng) để ra quyết định cho vay.</p>
+                            <div class="pain-highlight">⚠️ Tạo rào cản lớn, loại trừ nhóm khách hàng <strong>"thin-file"</strong> — sinh viên, lao động tự do, người ở nông thôn — những người không có hoặc có rất ít lịch sử tín dụng.</div>
+                        </div>
+
+                        <!-- Card 2: Điểm nghẽn -->
+                        <div class="pain-card pain reveal d3">
+                            <div class="pain-icon amber">⏱️</div>
+                            <div class="pain-title">Điểm Nghẽn (Pain Points)</div>
+                            <ul class="pain-bullets">
+                                <li>Quy trình thẩm định <strong>thủ công</strong> tốn nhiều thời gian (vài ngày đến vài tuần), ảnh hưởng trải nghiệm khách hàng</li>
+                                <li>Các mô hình truyền thống đánh giá <strong>chủ quan</strong>, khó phát hiện các mẫu rủi ro gian lận phức tạp</li>
+                                <li>Tỷ lệ từ chối hồ sơ cao do thiếu dữ liệu, bỏ lỡ tệp khách hàng tiềm năng</li>
+                            </ul>
+                        </div>
+
+                        <!-- Card 3: Mục tiêu (full width) -->
+                        <div class="pain-card goal reveal d4" style="grid-column: 1 / -1;">
+                            <div style="display: flex; align-items: center; gap: 14px;">
+                                <div class="pain-icon cyan">🎯</div>
+                                <div class="pain-title">Mục Tiêu Dự Án</div>
+                                <span class="tag tag-high">Core Mission</span>
+                            </div>
+                            <p class="pain-desc" style="font-size: 23px;">Xây dựng hệ thống <strong style="color: var(--accent-cyan);">AI chấm điểm tín dụng</strong> sử dụng kết hợp dữ liệu truyền thống và <strong style="color: var(--accent-magenta);">dữ liệu thay thế (alternative data)</strong> — hành vi số, mức độ tương tác — nhằm:</p>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 12px;">
+                                <div style="text-align: center; padding: 22px; background: rgba(0, 255, 204, 0.04); border-radius: 14px; border: 1px solid rgba(0, 255, 204, 0.12);">
+                                    <div style="font-family: var(--font-display); font-size: 42px; font-weight: 600; color: var(--accent-cyan);">⚡</div>
+                                    <div style="font-family: var(--font-body); font-size: 22px; color: var(--text-primary); font-weight: 600; margin-top: 10px;">Tự động hóa</div>
+                                    <div style="font-family: var(--font-body); font-size: 17px; color: var(--text-secondary); margin-top: 4px;">Quy trình thẩm định realtime</div>
+                                </div>
+                                <div style="text-align: center; padding: 22px; background: rgba(255, 0, 170, 0.04); border-radius: 14px; border: 1px solid rgba(255, 0, 170, 0.12);">
+                                    <div style="font-family: var(--font-display); font-size: 42px; font-weight: 600; color: var(--accent-magenta);">🎯</div>
+                                    <div style="font-family: var(--font-body); font-size: 22px; color: var(--text-primary); font-weight: 600; margin-top: 10px;">Chính xác</div>
+                                    <div style="font-family: var(--font-body); font-size: 17px; color: var(--text-secondary); margin-top: 4px;">Đánh giá rủi ro thời gian thực</div>
+                                </div>
+                                <div style="text-align: center; padding: 22px; background: rgba(68, 255, 136, 0.04); border-radius: 14px; border: 1px solid rgba(68, 255, 136, 0.12);">
+                                    <div style="font-family: var(--font-display); font-size: 42px; font-weight: 600; color: var(--accent-green);">🌍</div>
+                                    <div style="font-family: var(--font-body); font-size: 22px; color: var(--text-primary); font-weight: 600; margin-top: 10px;">Financial Inclusion</div>
+                                    <div style="font-family: var(--font-body); font-size: 17px; color: var(--text-secondary); margin-top: 4px;">Mở rộng tiếp cận tài chính</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <span class="slide-counter">01 / 04</span>
+            </section>
+
+            <!-- ===========================================
+                 SLIDE 2: KHẢO SÁT (SURVEY)
+                 =========================================== -->
+            <section class="slide" aria-label="Khảo sát background và phương pháp">
+                <div class="noise"></div>
+                <div class="accent-line-left"></div>
+                <span class="section-num">02</span>
+                <div class="slide-content">
+                    <div class="survey-layout">
+                        <!-- Header -->
+                        <div class="survey-header reveal d1">
+                            <div class="overline" style="margin-bottom: 12px;">Slide 2 — Survey</div>
+                            <h2 class="slide-title" style="font-size: 56px;">Background & <span class="accent">Phương Pháp Giải Quyết</span></h2>
+                        </div>
+
+                        <!-- Card 1: Bối cảnh -->
+                        <div class="survey-card bg reveal d2">
+                            <div class="survey-title">📡 Bối Cảnh (Background)</div>
+                            <p class="survey-body">Sự bùng nổ của <strong style="color: var(--text-primary);">Big Data</strong> và <strong style="color: var(--text-primary);">AI</strong> cho phép các tổ chức tài chính khai thác "dữ liệu thay thế" để bổ sung hồ sơ khách hàng.</p>
+                            <div class="survey-highlight neutral">💡 Ví dụ: Hành vi mạng xã hội, dữ liệu viễn thông, hóa đơn tiện ích, hành vi kỹ thuật số</div>
+                        </div>
+
+                        <!-- Card 2: Phương pháp truyền thống -->
+                        <div class="survey-card trad reveal d3">
+                            <div class="survey-title">📋 Phương Pháp Truyền Thống</div>
+                            <p class="survey-body">Chủ yếu dùng mô hình <strong style="color: var(--text-primary);">Logistic Regression</strong> hoặc Thẻ điểm truyền thống (Scorecard).</p>
+                            <div class="survey-highlight pro">✅ Ưu: Tính giải thích cao, dễ báo cáo cơ quan quản lý</div>
+                            <div class="survey-highlight con">❌ Nhược: Độ chính xác thấp với dữ liệu phi tuyến tính, bỏ sót lượng lớn khách hàng</div>
+                        </div>
+
+                        <!-- Card 3: AI/ML hiện tại (full width) -->
+                        <div class="survey-card modern full-width reveal d4">
+                            <div class="survey-title">
+                                🤖 Phương Pháp Hiện Tại (AI / Machine Learning)
+                                <span class="tag tag-high" style="margin-left: 8px;">Xu hướng</span>
+                            </div>
+                            <p class="survey-body">Các thị trường tiên tiến và tổ chức FinTech đang chuyển sang dùng các thuật toán Học máy (<strong style="color: var(--text-primary);">Random Forest, XGBoost, CatBoost</strong>) và Học sâu (<strong style="color: var(--text-primary);">Deep Learning</strong>) — xử lý tốt dữ liệu phi cấu trúc, phát hiện mối quan hệ ẩn, dự báo vỡ nợ (default prediction) cực kỳ chính xác.</p>
+                            <div style="display: flex; gap: 16px; align-items: flex-start;">
+                                <div style="flex: 1;">
+                                    <div style="font-family: var(--font-mono); font-size: 15px; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;">Tổ chức tiêu biểu</div>
+                                    <div class="survey-companies">
+                                        <span class="company-tag">FE Credit ($NAP)</span>
+                                        <span class="company-tag">FPT AI</span>
+                                        <span class="company-tag">TrustSocial</span>
+                                        <span class="company-tag">FinScore</span>
+                                    </div>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div class="survey-highlight warn" style="margin: 0;">⚠️ <strong>Thách thức:</strong> Thuật toán AI phức tạp thường bị coi là "hộp đen" (black-box) → Yêu cầu cấp thiết kết hợp <strong>Explainable AI (XAI)</strong> để duy trì sự minh bạch.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <span class="slide-counter">02 / 04</span>
+            </section>
+
+            <!-- ===========================================
+                 SLIDE 3: BẢNG FEATURE — VALUE — METRIC — EFFORT
+                 =========================================== -->
+            <section class="slide" aria-label="Bảng Feature chính">
+                <div class="noise"></div>
+                <div class="accent-line-left"></div>
+                <span class="section-num">03</span>
+                <div class="slide-content">
+                    <div class="feature-table-layout">
+                        <!-- Header -->
+                        <div class="feature-table-header reveal d1">
+                            <div class="overline" style="margin-bottom: 12px;">Slide 3 — Feature Roadmap</div>
+                            <h2 class="slide-title" style="font-size: 52px;">Feature, Value, Metric & <span class="accent">Ước Lượng Effort</span></h2>
+                            <p class="body-text reveal d2" style="font-size: 22px; margin-top: 10px; color: var(--text-muted);">Định hướng phát triển tập trung vào nhóm tính năng xử lý dữ liệu hiện có và ra quyết định</p>
+                        </div>
+
+                        <!-- Table -->
+                        <div class="reveal-scale d3" style="overflow: auto; flex: 1;">
+                            <table class="feature-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 200px;">Feature / Nhóm</th>
+                                        <th style="width: 190px;">Giải quyết Pain Point</th>
+                                        <th style="width: 180px;">Value mang lại</th>
+                                        <th style="width: 180px;">Metric đánh giá</th>
+                                        <th style="width: 220px;">Module & Effort (MM)</th>
+                                        <th style="width: 180px;">Yếu tố then chốt</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Row 1: AI Scoring Engine -->
+                                    <tr>
+                                        <td>
+                                            <div class="cell-feature" style="color: var(--accent-cyan);">1. AI Scoring Engine</div>
+                                            <div class="cell-sub">Mô hình AI Chấm điểm</div>
+                                        </td>
+                                        <td>Đánh giá chủ quan, chậm chạp; Bỏ lỡ tệp khách hàng "thin-file"</td>
+                                        <td>Rút ngắn thời gian duyệt từ <strong style="color: var(--accent-green);">vài ngày → vài giây</strong>; Giảm rủi ro nợ xấu</td>
+                                        <td>
+                                            <ul class="metric-list">
+                                                <li>AUC-ROC</li>
+                                                <li>F1-Score</li>
+                                                <li>Gini Index (>30%)</li>
+                                            </ul>
+                                        </td>
+                                        <td>
+                                            <ul class="module-list">
+                                                <li>EDA & Feature Eng. <span style="color: var(--accent-cyan);">(2 MM)</span></li>
+                                                <li>Model Training CatBoost/XGBoost <span style="color: var(--accent-cyan);">(3 MM)</span></li>
+                                                <li>API Serving <span style="color: var(--accent-cyan);">(1 MM)</span></li>
+                                            </ul>
+                                        </td>
+                                        <td><span class="success-factor">Dữ liệu đầu vào sạch; Khả năng xử lý phân loại tự động của mô hình</span></td>
+                                    </tr>
+
+                                    <!-- Row 2: Automated Decision -->
+                                    <tr>
+                                        <td>
+                                            <div class="cell-feature" style="color: var(--accent-magenta);">2. Automated Decision</div>
+                                            <div class="cell-sub">Luồng Đề xuất tự động</div>
+                                        </td>
+                                        <td>Tỷ lệ rớt hồ sơ cao; Sản phẩm tín dụng đại trà cứng nhắc</td>
+                                        <td>Tiết kiệm chi phí vận hành; Tăng tỷ lệ duyệt vay nhờ <strong style="color: var(--accent-green);">"đo ni đóng giày"</strong></td>
+                                        <td>
+                                            <ul class="metric-list">
+                                                <li>STP Rate (Tỷ lệ xử lý tự động)</li>
+                                                <li>Tỷ lệ chuyển đổi hồ sơ</li>
+                                            </ul>
+                                        </td>
+                                        <td>
+                                            <ul class="module-list">
+                                                <li>Business Rule Engine <span style="color: var(--accent-magenta);">(2 MM)</span></li>
+                                                <li>Dynamic Limit Logic <span style="color: var(--accent-magenta);">(1.5 MM)</span></li>
+                                            </ul>
+                                        </td>
+                                        <td><span class="success-factor">Ánh xạ chính xác giữa rủi ro dự đoán và "khẩu vị rủi ro" của tổ chức</span></td>
+                                    </tr>
+
+                                    <!-- Row 3: XAI Explainable Reports -->
+                                    <tr>
+                                        <td>
+                                            <div class="cell-feature" style="color: var(--accent-amber);">3. XAI Reports</div>
+                                            <div class="cell-sub">Báo cáo AI minh bạch</div>
+                                        </td>
+                                        <td>Khách hàng không hiểu vì sao rớt; Mô hình AI là "Hộp đen"</td>
+                                        <td>Đảm bảo minh bạch, tuân thủ pháp lý, <strong style="color: var(--accent-green);">tạo niềm tin</strong> cho người vay</td>
+                                        <td>
+                                            <ul class="metric-list">
+                                                <li>Tỷ lệ khiếu nại giảm</li>
+                                                <li>Điểm CSAT (Hài lòng KH)</li>
+                                            </ul>
+                                        </td>
+                                        <td>
+                                            <ul class="module-list">
+                                                <li>SHAP/LIME Integration <span style="color: var(--accent-amber);">(1.5 MM)</span></li>
+                                                <li>Report Dashboard UI <span style="color: var(--accent-amber);">(1 MM)</span></li>
+                                            </ul>
+                                        </td>
+                                        <td><span class="success-factor">Giải thích dễ hiểu, phi kỹ thuật (VD: "Điểm thấp do thu nhập không đều")</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Total effort summary -->
+                        <div class="reveal d4" style="display: flex; justify-content: flex-end; gap: 40px; margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--border);">
+                            <div style="text-align: center;">
+                                <div style="font-family: var(--font-display); font-size: 46px; font-weight: 600; color: var(--accent-cyan);">6 <span style="font-size: 22px; color: var(--text-muted);">MM</span></div>
+                                <div style="font-family: var(--font-mono); font-size: 15px; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase;">AI Scoring</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-family: var(--font-display); font-size: 46px; font-weight: 600; color: var(--accent-magenta);">3.5 <span style="font-size: 22px; color: var(--text-muted);">MM</span></div>
+                                <div style="font-family: var(--font-mono); font-size: 15px; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase;">Decision</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-family: var(--font-display); font-size: 46px; font-weight: 600; color: var(--accent-amber);">2.5 <span style="font-size: 22px; color: var(--text-muted);">MM</span></div>
+                                <div style="font-family: var(--font-mono); font-size: 15px; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase;">XAI Reports</div>
+                            </div>
+                            <div style="text-align: center; padding: 12px 28px; background: rgba(0, 255, 204, 0.06); border-radius: 14px; border: 1px solid rgba(0, 255, 204, 0.18);">
+                                <div style="font-family: var(--font-display); font-size: 46px; font-weight: 600; color: var(--accent-cyan);">12 <span style="font-size: 22px; color: var(--text-muted);">MM</span></div>
+                                <div style="font-family: var(--font-mono); font-size: 15px; color: var(--accent-cyan); letter-spacing: 0.12em; text-transform: uppercase;">Tổng Effort</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <span class="slide-counter">03 / 04</span>
+            </section>
+
+            <!-- ===========================================
+                 SLIDE 4: MÔ HÌNH CỐT LÕI & AGENTIC WORKFLOW
+                 =========================================== -->
+            <section class="slide" aria-label="Mô hình cốt lõi và Agentic Workflow">
+                <div class="noise"></div>
+                <div class="accent-line-left"></div>
+                <span class="section-num">04</span>
+                <div class="slide-content">
+                    <div class="flow-layout">
+                        <!-- Header -->
+                        <div class="flow-header reveal d1">
+                            <div class="overline" style="margin-bottom: 12px;">Slide 4 — Core Architecture & Workflow</div>
+                            <h2 class="slide-title" style="font-size: 52px;">Mô Hình Cốt Lõi: <span class="accent">LLM Agent Orchestrator</span> & Workflow 4 Tools</h2>
+                        </div>
+
+                        <!-- Top IO & Orchestrator Row -->
+                        <div class="agent-io-grid reveal d2">
+                            <!-- Data IN -->
+                            <div class="io-card in">
+                                <div class="io-title">📥 Data IN</div>
+                                <div style="font-family: var(--font-mono); font-size: 16px; color: var(--accent-cyan); line-height: 1.5;">
+                                    • Customer ID (Mã KH)<br>
+                                    • Hồ sơ đăng ký vay<br>
+                                    • Data access consent
+                                </div>
+                            </div>
+
+                            <!-- LLM Agent Orchestrator Center -->
+                            <div class="orchestrator-box">
+                                <div>
+                                    <div class="orchestrator-title">
+                                        <span>🧠 LLM Agent Orchestrator (Bộ Não Điều Phối)</span>
+                                        <span class="tag tag-priority">Core Engine</span>
+                                    </div>
+                                    <div class="orchestrator-desc" style="margin-top: 6px;">
+                                        Tự động lập kế hoạch và điều phối 4 Augmentation Tools độc lập xử lý hồ sơ end-to-end
+                                    </div>
+                                </div>
+                                <div style="font-family: var(--font-mono); font-size: 15.5px; color: var(--accent-cyan); text-align: right; line-height: 1.5; font-weight: 600;">
+                                    Auto Planning<br>Tool Augmentation<br>Dynamic Execution
+                                </div>
+                            </div>
+
+                            <!-- Data OUT -->
+                            <div class="io-card out">
+                                <div class="io-title">📤 Data OUT</div>
+                                <div style="font-family: var(--font-mono); font-size: 15.5px; color: var(--accent-magenta); line-height: 1.5;">
+                                    Báo cáo Thẩm định Toàn diện:<br>
+                                    [Credit Score] + [Hạn mức/Lãi suất] + [Giải thích chi tiết (XAI)]
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4 Tools Sequence Diagram Header -->
+                        <div class="reveal d3" style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
+                            <div style="font-family: var(--font-mono); font-size: 17px; color: var(--accent-cyan); letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600;">
+                                🔄 Sequence Workflow Diagram: Agent Calling 4 Augmentation Tools (Query ➔ Classify ➔ Recommend ➔ Explain)
+                            </div>
+                            <span class="tag tag-info">Sequential Tool Loop</span>
+                        </div>
+
+                        <!-- 4 Tools Sequence Grid -->
+                        <div class="tools-sequence-grid reveal d4">
+                            <!-- Tool 1: Query -->
+                            <div class="tool-node">
+                                <div class="tool-node-header">
+                                    <span class="tool-name">🔍 Tool 1: Query</span>
+                                    <span class="tool-step-badge">Step 1</span>
+                                </div>
+                                <div style="font-size: 15.5px; font-weight: 600; color: var(--accent-cyan);">Truy Vấn Dữ Liệu Đa Nguồn</div>
+                                <div class="tool-task">
+                                    Agent gọi API truy xuất thông tin: Dữ liệu truyền thống (CIC, thu nhập, dư nợ) + Alternative Data (tương tác số, viễn thông, MXH, hóa đơn tiện ích).
+                                </div>
+                                <div class="tool-output-box">
+                                    out: Multi-source Customer Profile Data
+                                </div>
+                                <div class="seq-arrow">➔</div>
+                            </div>
+
+                            <!-- Tool 2: Classify -->
+                            <div class="tool-node">
+                                <div class="tool-node-header">
+                                    <span class="tool-name">🤖 Tool 2: Classify</span>
+                                    <span class="tool-step-badge">Step 2</span>
+                                </div>
+                                <div style="font-size: 15.5px; font-weight: 600; color: var(--accent-blue);">Dự Đoán Rủi Ro (ML/DL)</div>
+                                <div class="tool-task">
+                                    Đẩy dataset vào ML/DL model (XGBoost, CatBoost, GNN) để đánh giá mối quan hệ phi tuyến tính và phát hiện mẫu rủi ro ẩn.
+                                </div>
+                                <div class="tool-output-box" style="border-color: var(--accent-blue);">
+                                    out: PD (Default Prob) + Credit Score + Risk Segment
+                                </div>
+                                <div class="seq-arrow">➔</div>
+                            </div>
+
+                            <!-- Tool 3: Recommend_Limit -->
+                            <div class="tool-node">
+                                <div class="tool-node-header">
+                                    <span class="tool-name">⚖️ Tool 3: Recommend</span>
+                                    <span class="tool-step-badge">Step 3</span>
+                                </div>
+                                <div style="font-size: 15.5px; font-weight: 600; color: var(--accent-amber);">Đề Xuất Hạn Mức</div>
+                                <div class="tool-task">
+                                    Dựa trên Credit Score & thu nhập, Agent gọi Business Rule Engine nội bộ để ánh xạ khẩu vị rủi ro ngân hàng.
+                                </div>
+                                <div class="tool-output-box" style="border-color: var(--accent-amber);">
+                                    out: Phê duyệt (Duyệt/Từ chối) + Hạn mức max + Lãi suất
+                                </div>
+                                <div class="seq-arrow">➔</div>
+                            </div>
+
+                            <!-- Tool 4: Explain -->
+                            <div class="tool-node">
+                                <div class="tool-node-header">
+                                    <span class="tool-name">📜 Tool 4: Explain</span>
+                                    <span class="tool-step-badge">Step 4</span>
+                                </div>
+                                <div style="font-size: 15.5px; font-weight: 600; color: var(--accent-magenta);">Giải Thích (XAI + RAG)</div>
+                                <div class="tool-task">
+                                    Dùng SHAP/LIME lấy top feature importance + RAG LLM truy xuất chính sách tín dụng dịch thành ngôn ngữ tự nhiên minh bạch.
+                                </div>
+                                <div class="tool-output-box" style="border-color: var(--accent-magenta);">
+                                    out: Lời giải thích NTL phi kỹ thuật + Policy reasoning
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Comprehensive Report Summary Bar at Bottom -->
+                        <div class="report-summary-card reveal d5">
+                            <div style="display: flex; align-items: center; gap: 16px;">
+                                <div style="font-size: 32px;">📊</div>
+                                <div>
+                                    <div style="font-family: var(--font-display); font-size: 21px; font-weight: 600; color: var(--text-primary);">
+                                        Báo Cáo Thẩm Định Toàn Diện (Comprehensive Report)
+                                    </div>
+                                    <div style="font-family: var(--font-body); font-size: 17.5px; color: var(--text-secondary);">
+                                        Tự động chuyển tới Nhân viên phê duyệt (Underwriter) hoặc hiển thị trực tiếp trên ứng dụng Khách hàng
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 12px;">
+                                <span class="tag tag-high">[1] Điểm Tín Dụng</span>
+                                <span class="tag tag-priority">[2] Hạn Mức & Lãi Suất</span>
+                                <span class="tag tag-info">[3] Lý Do Giải Thích Chi Tiết</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <span class="slide-counter">04 / 04</span>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        /* ===========================================
+           SLIDE PRESENTATION CONTROLLER
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.stage = document.getElementById('deckStage');
+                this.progressBar = document.getElementById('progressBar');
+                this.navDotsContainer = document.getElementById('navDots');
+                this.isAnimating = false;
+
+                this.setupStageScale();
+                this.setupKeyboardNav();
+                this.setupTouchNav();
+                this.setupMouseWheel();
+                this.setupNavDots();
+                this.showSlide(0);
+            }
+
+            /* --- Stage scaling: fixed 16:9 canvas --- */
+            setupStageScale() {
+                const scale = () => {
+                    const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+                    const x = (window.innerWidth - 1920 * factor) / 2;
+                    const y = (window.innerHeight - 1080 * factor) / 2;
+                    this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+                };
+                scale();
+                window.addEventListener('resize', scale);
+            }
+
+            /* --- Keyboard navigation --- */
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.target.getAttribute('contenteditable')) return;
+                    switch(e.key) {
+                        case 'ArrowRight': case 'ArrowDown': case ' ': case 'PageDown':
+                            e.preventDefault();
+                            this.next();
+                            break;
+                        case 'ArrowLeft': case 'ArrowUp': case 'PageUp':
+                            e.preventDefault();
+                            this.prev();
+                            break;
+                        case 'Home':
+                            e.preventDefault();
+                            this.showSlide(0);
+                            break;
+                        case 'End':
+                            e.preventDefault();
+                            this.showSlide(this.slides.length - 1);
+                            break;
+                    }
+                });
+            }
+
+            /* --- Touch/swipe support --- */
+            setupTouchNav() {
+                let startX = 0, startY = 0;
+                this.stage.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                }, { passive: true });
+                this.stage.addEventListener('touchend', (e) => {
+                    const dx = e.changedTouches[0].clientX - startX;
+                    const dy = e.changedTouches[0].clientY - startY;
+                    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+                        dx < 0 ? this.next() : this.prev();
+                    }
+                }, { passive: true });
+            }
+
+            /* --- Mouse wheel navigation --- */
+            setupMouseWheel() {
+                let lastWheel = 0;
+                document.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const now = Date.now();
+                    if (now - lastWheel < 600) return;
+                    lastWheel = now;
+                    e.deltaY > 0 ? this.next() : this.prev();
+                }, { passive: false });
+            }
+
+            /* --- Navigation dots --- */
+            setupNavDots() {
+                this.slides.forEach((_, i) => {
+                    const dot = document.createElement('button');
+                    dot.className = 'nav-dot';
+                    dot.setAttribute('aria-label', `Slide ${i + 1}`);
+                    dot.addEventListener('click', () => this.showSlide(i));
+                    this.navDotsContainer.appendChild(dot);
+                });
+            }
+
+            /* --- Show a specific slide --- */
+            showSlide(index) {
+                if (this.isAnimating) return;
+                this.currentSlide = Math.max(0, Math.min(index, this.slides.length - 1));
+
+                this.slides.forEach((slide, i) => {
+                    const isActive = i === this.currentSlide;
+                    slide.classList.toggle('active', isActive);
+                    slide.classList.toggle('visible', isActive);
+                });
+
+                // Update progress bar
+                const progress = ((this.currentSlide + 1) / this.slides.length) * 100;
+                this.progressBar.style.width = `${progress}%`;
+
+                // Update nav dots
+                const dots = this.navDotsContainer.querySelectorAll('.nav-dot');
+                dots.forEach((dot, i) => {
+                    dot.classList.toggle('active', i === this.currentSlide);
+                });
+            }
+
+            next() { this.showSlide(this.currentSlide + 1); }
+            prev() { this.showSlide(this.currentSlide - 1); }
+        }
+
+        /* ===========================================
+           INLINE EDITOR
+           =========================================== */
+        class InlineEditor {
+            constructor() {
+                this.isActive = false;
+                this.toggle = document.getElementById('editToggle');
+                this.hotzone = document.getElementById('editHotzone');
+                this.hideTimeout = null;
+
+                this.setupHover();
+                this.setupClick();
+                this.setupKeyboard();
+            }
+
+            setupHover() {
+                this.hotzone.addEventListener('mouseenter', () => {
+                    clearTimeout(this.hideTimeout);
+                    this.toggle.classList.add('show');
+                });
+                this.hotzone.addEventListener('mouseleave', () => {
+                    this.hideTimeout = setTimeout(() => {
+                        if (!this.isActive) this.toggle.classList.remove('show');
+                    }, 400);
+                });
+                this.toggle.addEventListener('mouseenter', () => clearTimeout(this.hideTimeout));
+                this.toggle.addEventListener('mouseleave', () => {
+                    this.hideTimeout = setTimeout(() => {
+                        if (!this.isActive) this.toggle.classList.remove('show');
+                    }, 400);
+                });
+            }
+
+            setupClick() {
+                this.toggle.addEventListener('click', () => this.toggleEditMode());
+                this.hotzone.addEventListener('click', () => this.toggleEditMode());
+            }
+
+            setupKeyboard() {
+                document.addEventListener('keydown', (e) => {
+                    if ((e.key === 'e' || e.key === 'E') && !e.target.getAttribute('contenteditable')) {
+                        this.toggleEditMode();
+                    }
+                    if (e.ctrlKey && e.key === 's') {
+                        e.preventDefault();
+                        if (this.isActive) this.save();
+                    }
+                });
+            }
+
+            toggleEditMode() {
+                this.isActive = !this.isActive;
+                this.toggle.classList.toggle('active', this.isActive);
+
+                const editables = document.querySelectorAll('.slide-title, .pain-title, .pain-desc, .pain-highlight, .survey-title, .survey-body, .survey-highlight, .flow-title, .flow-body, .step-title, .step-desc, .body-text, .overline, .cell-feature, .success-factor');
+                editables.forEach(el => {
+                    el.contentEditable = this.isActive;
+                });
+            }
+
+            save() {
+                const html = document.documentElement.outerHTML;
+                localStorage.setItem('slide-backup', html);
+                console.log('Saved to localStorage');
+            }
+        }
+
+        /* --- Initialize --- */
+        const presentation = new SlidePresentation();
+        const editor = new InlineEditor();
+    </script>
+</body>
+</html>
