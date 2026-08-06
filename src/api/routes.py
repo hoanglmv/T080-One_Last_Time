@@ -5,7 +5,14 @@ from fastapi.responses import FileResponse
 
 from src.agents.graph import agent
 from src.config import get_settings
-from src.models.schemas import ChatRequest, ChatResponse, CreditScoreRequest, CreditScoreResponse
+from src.models.schemas import (
+    ChatRequest,
+    ChatResponse,
+    CreditScoreRequest,
+    CreditScoreResponse,
+    TextExtractRequest,
+    TextExtractResponse,
+)
 from src.services.credit_scoring import ModelNotReadyError, load_credit_model, score_application
 
 router = APIRouter()
@@ -44,6 +51,21 @@ async def credit_score(request: CreditScoreRequest) -> CreditScoreResponse:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=422, detail="Hồ sơ không tương thích với model artifact.") from exc
+
+
+@router.post("/credit/extract-text", response_model=TextExtractResponse)
+async def credit_extract_text(request: TextExtractRequest) -> TextExtractResponse:
+    """Extract structured credit application fields from natural language text."""
+    try:
+        from src.services.credit_scoring import extract_application_from_text
+        res = await extract_application_from_text(request.text)
+        return TextExtractResponse(
+            extracted=res["extracted"],
+            llm_used=res["llm_used"],
+            summary=res["summary"],
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Không thể trích xuất văn bản: {exc}") from exc
 
 
 @router.get("/credit/model")

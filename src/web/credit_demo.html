@@ -45,6 +45,59 @@
     .panel-title { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-bottom: 23px; }
     h2 { margin: 0; font-weight: 700; font-size: 1.55rem; color: var(--ink); }
     .tag { border: 1px solid var(--line); border-radius: 999px; color: var(--muted); padding: 7px 11px; font-size: .75rem; font-weight: 600; }
+    
+    /* Text Extraction Box */
+    details.text-extract-box {
+      border: 1px solid rgba(20, 125, 115, .3);
+      background: rgba(20, 125, 115, .04);
+      border-radius: 16px;
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      transition: background .2s ease;
+    }
+    details.text-extract-box[open] { background: rgba(20, 125, 115, .07); }
+    summary.extract-header {
+      font-weight: 700;
+      font-size: .92rem;
+      color: var(--teal-dark);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      list-style: none;
+    }
+    summary.extract-header::-webkit-details-marker { display: none; }
+    .extract-body { margin-top: 12px; }
+    textarea#extract-input {
+      width: 100%;
+      min-height: 90px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font: inherit;
+      font-size: .88rem;
+      resize: vertical;
+      outline: none;
+      background: white;
+    }
+    textarea#extract-input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(20,125,115,.14); }
+    .extract-actions { display: flex; gap: 12px; align-items: center; margin-top: 10px; }
+    .btn-secondary {
+      background: var(--teal);
+      color: white;
+      width: auto;
+      padding: 10px 18px;
+      font-size: .84rem;
+      border-radius: 10px;
+    }
+    .btn-secondary:hover { background: var(--teal-dark); }
+    .extract-status { font-size: .8rem; color: var(--teal); font-weight: 600; }
+    .highlight-flash { animation: flashBorder 1.5s ease; }
+    @keyframes flashBorder {
+      0% { border-color: var(--teal); box-shadow: 0 0 0 4px rgba(20,125,115,.3); }
+      100% { border-color: var(--line); box-shadow: none; }
+    }
+
     .section { margin-top: 24px; }
     .section h3 { margin: 0 0 13px; font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; color: var(--teal); font-weight: 700; }
     .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
@@ -95,12 +148,28 @@
   <header>
     <div class="eyebrow">Alternative Credit Scoring · Research POC</div>
     <h1>Chấm điểm có giải thích, không che giấu giới hạn.</h1>
-    <p>Nhập hồ sơ dữ liệu thay thế (ACS) để nhận xác suất vỡ nợ đã định chuẩn, điểm tín dụng POC và các yếu tố tác động. Hệ thống không tự động phê duyệt hay từ chối khoản vay.</p>
+    <p>Nhập hồ sơ dữ liệu thay thế (ACS) hoặc dán đoạn văn bản mô tả để nhận xác suất vỡ nợ đã định chuẩn, điểm tín dụng POC và các yếu tố tác động. Hệ thống không tự động phê duyệt hay từ chối khoản vay.</p>
   </header>
 
   <main class="layout">
     <form id="score-form" class="panel form-panel">
       <div class="panel-title"><h2>Hồ sơ giả lập</h2><span class="tag">Home Credit 2018 Data</span></div>
+
+      <!-- Smart Text Parsing Section -->
+      <details class="text-extract-box">
+        <summary class="extract-header">
+          <span>📄 Trích xuất tự động hồ sơ từ văn bản (Smart Text Parsing)</span>
+          <span class="tag">AI Parser</span>
+        </summary>
+        <div class="extract-body">
+          <p class="subtle">Dán đoạn văn bản mô tả khách hàng vào đây. LLM / AI Parser sẽ tự động phân tích và điền dữ liệu vào phom bên dưới:</p>
+          <textarea id="extract-input" placeholder="Ví dụ: Anh Nam 38 tuổi, làm công nhân 8 năm. Thu nhập 18 triệu/tháng, cần vay khoản vay tiền mặt 50 triệu VNĐ, trả định kỳ 3 triệu hàng tháng. Đã kết hôn, gia đình 4 người, ở nhà riêng căn hộ sở hữu..."></textarea>
+          <div class="extract-actions">
+            <button id="extract-button" type="button" class="btn-secondary">🤖 LLM Trích Xuất & Tự Động Điền Phom</button>
+            <span id="extract-status" class="extract-status"></span>
+          </div>
+        </div>
+      </details>
 
       <section class="section">
         <h3>Khoản vay & thu nhập</h3>
@@ -127,14 +196,14 @@
           </label>
           <label>
             <span>Loại hợp đồng vay</span>
-            <select name="NAME_CONTRACT_TYPE">
+            <select id="input-NAME_CONTRACT_TYPE" name="NAME_CONTRACT_TYPE">
               <option value="Cash loans">Vay tiền mặt (Cash loans)</option>
               <option value="Revolving loans">Vay thấu chi / Thẻ tín dụng (Revolving loans)</option>
             </select>
           </label>
           <label>
             <span>Số người trong gia đình</span>
-            <input name="CNT_FAM_MEMBERS" type="number" min="1" max="20" value="2">
+            <input id="input-CNT_FAM_MEMBERS" name="CNT_FAM_MEMBERS" type="number" min="1" max="20" value="2">
           </label>
         </div>
       </section>
@@ -144,15 +213,15 @@
         <div class="grid">
           <label>
             <span>Tuổi <em class="unit-hint">(năm)</em></span>
-            <input name="AGE_YEARS_INPUT" type="number" min="18" max="100" value="38" required>
+            <input id="input-AGE_YEARS_INPUT" name="AGE_YEARS_INPUT" type="number" min="18" max="100" value="38" required>
           </label>
           <label>
             <span>Thâm niên làm việc <em class="unit-hint">(năm)</em></span>
-            <input name="EMPLOYMENT_YEARS_INPUT" type="number" min="0" max="70" value="8" required>
+            <input id="input-EMPLOYMENT_YEARS_INPUT" name="EMPLOYMENT_YEARS_INPUT" type="number" min="0" max="70" value="8" required>
           </label>
           <label>
             <span>Loại thu nhập</span>
-            <select name="NAME_INCOME_TYPE">
+            <select id="input-NAME_INCOME_TYPE" name="NAME_INCOME_TYPE">
               <option value="Working">Đi làm công ăn lương (Working)</option>
               <option value="Commercial associate">Kinh doanh / Hợp tác thương mại (Commercial associate)</option>
               <option value="Pensioner">Hưu trí / Nhận lương hưu (Pensioner)</option>
@@ -161,7 +230,7 @@
           </label>
           <label>
             <span>Trình độ học vấn</span>
-            <select name="NAME_EDUCATION_TYPE">
+            <select id="input-NAME_EDUCATION_TYPE" name="NAME_EDUCATION_TYPE">
               <option value="Secondary / secondary special">Trung học / Trung cấp chuyên nghiệp</option>
               <option value="Higher education">Đại học / Sau đại học</option>
               <option value="Incomplete higher">Đang học đại học (Dở dang)</option>
@@ -170,7 +239,7 @@
           </label>
           <label>
             <span>Loại nhà ở cư trú</span>
-            <select name="NAME_HOUSING_TYPE">
+            <select id="input-NAME_HOUSING_TYPE" name="NAME_HOUSING_TYPE">
               <option value="House / apartment">Nhà riêng / Căn hộ sở hữu</option>
               <option value="With parents">Ở cùng cha mẹ</option>
               <option value="Municipal apartment">Căn hộ nhà nước / Căn hộ xã hội</option>
@@ -179,7 +248,7 @@
           </label>
           <label>
             <span>Tình trạng gia đình</span>
-            <select name="NAME_FAMILY_STATUS">
+            <select id="input-NAME_FAMILY_STATUS" name="NAME_FAMILY_STATUS">
               <option value="Married">Đã kết hôn</option>
               <option value="Single / not married">Độc thân / Chưa kết hôn</option>
               <option value="Civil marriage">Sống chung / Kết hôn thực tế</option>
@@ -244,6 +313,7 @@
     const currencyFields = ["AMT_INCOME_TOTAL", "AMT_CREDIT", "AMT_ANNUITY", "AMT_GOODS_PRICE"];
 
     function formatNumberDots(str) {
+      if (str === null || str === undefined) return "";
       let clean = String(str).replace(/\D/g, "");
       if (!clean) return "";
       return clean.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -321,9 +391,62 @@
       const input = document.querySelector(`#input-${fieldId}`);
       if (input) {
         input.addEventListener("input", () => updateCurrencyField(fieldId));
-        updateCurrencyField(fieldId); // initial formatting
+        updateCurrencyField(fieldId);
       }
     });
+
+    // Text Extraction Handling
+    const extractBtn = document.querySelector("#extract-button");
+    const extractInput = document.querySelector("#extract-input");
+    const extractStatus = document.querySelector("#extract-status");
+
+    if (extractBtn && extractInput) {
+      extractBtn.addEventListener("click", async () => {
+        const text = extractInput.value.trim();
+        if (!text) {
+          extractStatus.textContent = "⚠️ Vui lòng dán văn bản trước khi bấm trích xuất.";
+          return;
+        }
+        extractBtn.disabled = true;
+        extractStatus.textContent = "⏳ LLM / AI đang phân tích dữ liệu...";
+
+        try {
+          const response = await fetch("/api/v1/credit/extract-text", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({text: text})
+          });
+          const payload = await response.json();
+          if (!response.ok) throw new Error(payload.detail || "Không thể trích xuất văn bản.");
+
+          const extracted = payload.extracted || {};
+          let filledCount = 0;
+
+          for (const [key, val] of Object.entries(extracted)) {
+            if (val === null || val === undefined) continue;
+            const elem = document.querySelector(`#input-${key}`) || document.querySelector(`[name="${key}"]`);
+            if (elem) {
+              if (currencyFields.includes(key)) {
+                elem.value = formatNumberDots(val);
+                updateCurrencyField(key);
+              } else {
+                elem.value = val;
+              }
+              elem.classList.remove("highlight-flash");
+              void elem.offsetWidth; // trigger reflow
+              elem.classList.add("highlight-flash");
+              filledCount++;
+            }
+          }
+
+          extractStatus.textContent = `✓ ${payload.summary} (Đã tự điền ${filledCount} trường)`;
+        } catch (err) {
+          extractStatus.textContent = `❌ Lỗi: ${err.message}`;
+        } finally {
+          extractBtn.disabled = false;
+        }
+      });
+    }
 
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
