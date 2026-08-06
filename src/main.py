@@ -16,8 +16,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="AI20K Agent",
-    description="AI Agent built with LangGraph",
+    title="Alternative Credit Scoring POC",
+    description="Home Credit research scoring, local explanations and optional guarded LLM narration",
     version="1.0.0",
     lifespan=lifespan,
 )
@@ -37,9 +37,10 @@ app.include_router(router, prefix="/api/v1")
 @app.get("/")
 async def root():
     return {
-        "message": "AI20K Agent API is running",
+        "message": "Alternative Credit Scoring POC API is running",
         "docs": "/docs",
         "health": "/health",
+        "credit_demo": "/api/v1/credit/demo",
     }
 
 
@@ -47,3 +48,14 @@ async def root():
 async def health():
     return {"status": "ok", "env": settings.app_env}
 
+
+@app.get("/ready")
+async def readiness():
+    from pathlib import Path
+
+    model_ready = Path(settings.credit_model_path).is_file()
+    return {
+        "status": "ready" if model_ready else "degraded",
+        "api": True,
+        "credit_model": model_ready,
+    }
