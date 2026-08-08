@@ -12,7 +12,40 @@ POC end-to-end cho bài toán dự đoán `payment difficulty` trên Home Credit
 
 Tài liệu chính: [Implementation Plan](IMPLEMENTATION_PLAN.md), [Model Card](artifacts/models/MODEL_CARD.md), [training report](artifacts/models/training_report.json) và [EDA report](artifacts/reports/eda_report.json).
 
-## Chạy POC
+## 🐳 Chạy Dự Án Bằng Docker (1-Click Docker Setup)
+
+Dự án hỗ trợ đóng gói và khởi chạy toàn bộ ứng dụng (FastAPI + Web Dashboard + Pre-trained Models) bằng Docker chỉ với **1 câu lệnh duy nhất**.
+
+### 1. Cài đặt Docker (Nếu chưa có)
+
+- **Trên Linux / WSL2 (Ubuntu)**:
+  ```bash
+  sudo apt update && sudo apt install -y docker.io docker-compose-v2
+  sudo service docker start
+  sudo usermod -aG docker $USER
+  ```
+- **Trên Windows / macOS**:
+  Tải và mở [Docker Desktop](https://www.docker.com/products/docker-desktop/). Nếu dùng Windows WSL2, vào **Docker Desktop Settings -> Resources -> WSL integration** và bật tick chọn bản Ubuntu của bạn.
+
+---
+
+### 2. Khởi chạy 1-Click bằng Docker
+
+```bash
+docker compose up --build
+```
+*Hoặc dùng script 1-click:*
+```bash
+./run/run_docker.sh
+```
+
+Mở trình duyệt:
+- 📊 **Web Dashboard**: <http://localhost:8000/api/v1/credit/demo>
+- 📚 **Swagger API Docs**: <http://localhost:8000/docs>
+
+---
+
+## 💻 Chạy Trực Tiếp Bằng Local Python (Dành cho Developer)
 
 ```bash
 uv sync --frozen

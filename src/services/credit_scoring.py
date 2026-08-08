@@ -83,24 +83,66 @@ async def _llm_summary(result: dict[str, Any]) -> str:
     return str(response.content)
 
 
+TRADITIONAL_INPUT_FIELDS = {
+    "EXT_SOURCE_1",
+    "EXT_SOURCE_2",
+    "EXT_SOURCE_3",
+    "AMT_CREDIT",
+    "AMT_ANNUITY",
+    "AMT_GOODS_PRICE",
+}
+
+
+def detect_model_for_application(application: dict[str, Any]) -> tuple[str, str, str]:
+    """Identify if the payload has traditional credit bureau/loan fields or only alternative fields."""
+    import numpy as np
+
+    has_traditional = False
+    for field in TRADITIONAL_INPUT_FIELDS:
+        val = application.get(field)
+        if val is not None and val != "" and not (isinstance(val, float) and np.isnan(val)):
+            has_traditional = True
+            break
+
+    settings = get_settings()
+    if has_traditional:
+        path = settings.credit_model_path
+        name = "Hybrid Model (Traditional + Alternative Data)"
+        reason = "Hệ thống tự động phát hiện hồ sơ có chứa điểm rủi ro Bureau / Khoản vay truyền thống. Đã tự động kích hoạt Hybrid Model (ROC-AUC ~0.76)."
+    else:
+        alt_path = Path("artifacts/models/alternative_only_model.joblib")
+        if alt_path.is_file():
+            path = str(alt_path)
+            name = "Alternative-Only Model (Chỉ Dữ Liệu Thay Thế)"
+            reason = "Hệ thống tự động phát hiện hồ sơ KHÔNG có thông tin điểm Bureau/Khoản vay truyền thống. Đã tự động kích hoạt Alternative-Only Model cho nhóm Thin-file / Unbanked (ROC-AUC ~0.64)."
+        else:
+            path = settings.credit_model_path
+            name = "Hybrid Model (Default Fallback)"
+            reason = "Hệ thống sử dụng mô hình mặc định."
+
+    return path, name, reason
+
+
 async def score_application(
     application: dict[str, Any],
     *,
     explain_with_llm: bool,
     top_k: int,
 ) -> dict[str, Any]:
-    settings = get_settings()
-    bundle = load_credit_model(settings.credit_model_path)
+    model_path, detected_name, routing_reason = detect_model_for_application(application)
+    bundle = load_credit_model(model_path)
+
     result = bundle.score([application], top_k=top_k)[0]
+    result["auto_detected_model"] = detected_name
+    result["model_routing_reason"] = routing_reason
     result["friendly_explanation"] = deterministic_summary(result)
     result["llm_used"] = False
+
     if explain_with_llm:
         try:
             result["friendly_explanation"] = await _llm_summary(result)
             result["llm_used"] = True
         except Exception:
-            # Scoring never depends on an external LLM. The deterministic reason
-            # codes remain the source of truth and are always returned.
             result["data_quality"]["warnings"].append(
                 "LLM không khả dụng; hệ thống đã dùng phần giải thích xác định tại chỗ."
             )
