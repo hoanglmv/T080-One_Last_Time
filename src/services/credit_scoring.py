@@ -109,6 +109,7 @@ async def score_application(
 
 def heuristic_text_extractor(text: str) -> dict[str, Any]:
     import re
+
     extracted: dict[str, Any] = {}
     lower_text = text.lower()
 
@@ -144,21 +145,28 @@ def heuristic_text_extractor(text: str) -> dict[str, Any]:
             return None
 
     # Thu nhập
-    inc_match = re.search(r"(?:thu nhập|lương|kiếm được)\s*[\approx:]*\s*([\d\.,]+)\s*(triệu|tr|tỷ|nghìn|k|vnđ|đ)*", lower_text)
+    inc_match = re.search(
+        r"(?:thu nhập|lương|kiếm được)\s*[\approx:]*\s*([\d\.,]+)\s*(triệu|tr|tỷ|nghìn|k|vnđ|đ)*", lower_text
+    )
     if inc_match:
         val = parse_money(inc_match.group(1), inc_match.group(2) or "")
         if val and val > 0:
             extracted["AMT_INCOME_TOTAL"] = val
 
     # Khoản vay
-    crd_match = re.search(r"(?:vay|cần vay|khoản vay)\s*[\approx:]*\s*([\d\.,]+)\s*(triệu|tr|tỷ|nghìn|k|vnđ|đ)*", lower_text)
+    crd_match = re.search(
+        r"(?:vay|cần vay|khoản vay)\s*[\approx:]*\s*([\d\.,]+)\s*(triệu|tr|tỷ|nghìn|k|vnđ|đ)*", lower_text
+    )
     if crd_match:
         val = parse_money(crd_match.group(1), crd_match.group(2) or "")
         if val and val > 0:
             extracted["AMT_CREDIT"] = val
 
     # Khoản trả hàng tháng
-    ann_match = re.search(r"(?:trả hàng tháng|trả định kỳ|góp hàng tháng|trả mỗi tháng)\s*[\approx:]*\s*([\d\.,]+)\s*(triệu|tr|tỷ|nghìn|k|vnđ|đ)*", lower_text)
+    ann_match = re.search(
+        r"(?:trả hàng tháng|trả định kỳ|góp hàng tháng|trả mỗi tháng)\s*[\approx:]*\s*([\d\.,]+)\s*(triệu|tr|tỷ|nghìn|k|vnđ|đ)*",
+        lower_text,
+    )
     if ann_match:
         val = parse_money(ann_match.group(1), ann_match.group(2) or "")
         if val and val > 0:
@@ -243,7 +251,7 @@ async def extract_application_from_text(text: str) -> dict[str, Any]:
                 return {
                     "extracted": parsed,
                     "llm_used": True,
-                    "summary": f"Đã trích xuất {len(parsed)} trường thông tin bằng LLM AI."
+                    "summary": f"Đã trích xuất {len(parsed)} trường thông tin bằng LLM AI.",
                 }
         except Exception:
             pass
@@ -252,5 +260,5 @@ async def extract_application_from_text(text: str) -> dict[str, Any]:
     return {
         "extracted": heuristic,
         "llm_used": False,
-        "summary": f"Đã trích xuất {len(heuristic)} trường thông tin bằng Bộ quy tắc (Rule-based Fallback)."
+        "summary": f"Đã trích xuất {len(heuristic)} trường thông tin bằng Bộ quy tắc (Rule-based Fallback).",
     }

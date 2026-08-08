@@ -245,22 +245,22 @@ def _write_model_card(path: Path, report: dict[str, Any]) -> None:
 
 ## Phạm vi
 
-- Model: `{report['champion']}`
-- Version: `{report['model_version']}`
-- Feature set: `{report['feature_set']}`
-- Split: `{report['split']['strategy']}`
-- Số mẫu: `{report['data_profile']['rows']}`
+- Model: `{report["champion"]}`
+- Version: `{report["model_version"]}`
+- Feature set: `{report["feature_set"]}`
+- Split: `{report["split"]["strategy"]}`
+- Số mẫu: `{report["data_profile"]["rows"]}`
 
 ## Kết quả trên test holdout
 
 | Metric | Giá trị |
 |---|---:|
-| ROC-AUC | {test['roc_auc']:.6f} |
-| PR-AUC | {test['pr_auc']:.6f} |
-| KS | {test['ks']:.6f} |
-| Gini | {test['gini']:.6f} |
-| Brier | {test['brier']:.6f} |
-| ECE (10 bins) | {test['ece_10']:.6f} |
+| ROC-AUC | {test["roc_auc"]:.6f} |
+| PR-AUC | {test["pr_auc"]:.6f} |
+| KS | {test["ks"]:.6f} |
+| Gini | {test["gini"]:.6f} |
+| Brier | {test["brier"]:.6f} |
+| ECE (10 bins) | {test["ece_10"]:.6f} |
 
 ## Giới hạn bắt buộc
 
@@ -338,9 +338,7 @@ def train_credit_model(
     version = f"hc-poc-{model_time:%Y%m%dT%H%M%SZ}-{profile['source_sha256'][:8]}"
 
     raw_input_features = [
-        column
-        for column in feature_columns
-        if column not in ENGINEERED_FEATURES and column != "DAYS_EMPLOYED_ANOMALY"
+        column for column in feature_columns if column not in ENGINEERED_FEATURES and column != "DAYS_EMPLOYED_ANOMALY"
     ]
     required = [
         column
