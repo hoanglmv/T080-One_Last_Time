@@ -32,7 +32,8 @@ Thumbs.db
 data/*
 !data/DATA.md
 !data/README.md
-artifacts/
+artifacts/*
+!artifacts/models/
 catboost_info/
 *.db
 *.sqlite3
