@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 import sys
 import time
-from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -44,12 +44,17 @@ def main() -> None:
     args = parse_args()
     start_time = time.time()
 
-    if not args.model_path.is_file():
-        raise FileNotFoundError(f"Không tìm thấy ensemble artifact: {args.model_path}")
+    # Fallback to ensemble_model.joblib if default ensemble3_model.joblib does not exist yet
+    model_path = args.model_path
+    if not model_path.is_file() and Path("artifacts/models/ensemble_model.joblib").is_file():
+        model_path = Path("artifacts/models/ensemble_model.joblib")
+
+    if not model_path.is_file():
+        raise FileNotFoundError(f"Không tìm thấy ensemble artifact: {model_path}")
     if not args.test_path.is_file():
         raise FileNotFoundError(f"Không tìm thấy application test: {args.test_path}")
 
-    artifact = joblib.load(args.model_path)
+    artifact = joblib.load(model_path)
     models = artifact["models"]
     weights = artifact["optimal_weights"]
     feature_cols = artifact["feature_cols"]
@@ -76,13 +81,17 @@ def main() -> None:
             component_predictions[name] = models[name].predict_proba(transformed)[:, 1]
 
     if "CatBoost" in weighted_names:
-        (catboost_frame,) = _prepare_catboost_frame(
-            x_test_raw,
-            numeric_cols=artifact["catboost_numeric_cols"],
-            categorical_cols=artifact["catboost_categorical_cols"],
-            numeric_fill=artifact["catboost_numeric_fill"],
-        )
-        component_predictions["CatBoost"] = models["CatBoost"].predict_proba(catboost_frame)[:, 1]
+        if "catboost_numeric_cols" in artifact:
+            (catboost_frame,) = _prepare_catboost_frame(
+                x_test_raw,
+                numeric_cols=artifact["catboost_numeric_cols"],
+                categorical_cols=artifact["catboost_categorical_cols"],
+                numeric_fill=artifact["catboost_numeric_fill"],
+            )
+            component_predictions["CatBoost"] = models["CatBoost"].predict_proba(catboost_frame)[:, 1]
+        else:
+            transformed = artifact["tree_preprocessor"].transform(x_test_raw)
+            component_predictions["CatBoost"] = models["CatBoost"].predict_proba(transformed)[:, 1]
 
     if set(component_predictions) != weighted_names:
         missing = sorted(weighted_names - set(component_predictions))

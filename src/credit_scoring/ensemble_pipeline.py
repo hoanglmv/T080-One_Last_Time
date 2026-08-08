@@ -213,6 +213,7 @@ def train_ensemble_pipeline(
     x_train_tree = tree_prep.fit_transform(x_train_raw)
     x_val_tree = tree_prep.transform(x_val_raw)
     x_test_tree = tree_prep.transform(x_test_raw)
+
     x_train_cat, x_val_cat, x_test_cat = _prepare_catboost_frame(
         x_train_raw, x_val_raw, x_test_raw, numeric_cols=num_cols, categorical_cols=cat_cols
     )
@@ -307,12 +308,8 @@ def train_ensemble_pipeline(
         without_lr = {k: v for k, v in blend_val_preds.items() if k != "LogisticRegression"}
         weights_all = optimize_blending_weights(blend_val_preds, y_val, seed=seed)
         weights_without = optimize_blending_weights(without_lr, y_val, seed=seed)
-        auc_all = roc_auc_score(
-            y_val, sum(weights_all[k] * blend_val_preds[k] for k in weights_all)
-        )
-        auc_without = roc_auc_score(
-            y_val, sum(weights_without[k] * without_lr[k] for k in weights_without)
-        )
+        auc_all = roc_auc_score(y_val, sum(weights_all[k] * blend_val_preds[k] for k in weights_all))
+        auc_without = roc_auc_score(y_val, sum(weights_without[k] * without_lr[k] for k in weights_without))
         # Prefer the simpler tree-only blend on a tie; retain LogReg only when it
         # demonstrates a measurable validation gain.
         optimal_weights = weights_all if auc_all > auc_without + 1e-5 else weights_without

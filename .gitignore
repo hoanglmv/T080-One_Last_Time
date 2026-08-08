@@ -40,6 +40,7 @@ catboost_info/
 *.db
 *.sqlite3
 
+
 # Logs
 logs/
 *.log

@@ -119,12 +119,8 @@ def main() -> None:
             # Keep only LightGBM, XGBoost, CatBoost
             selected_names = ["LightGBM", "XGBoost", "CatBoost"]
             filtered_models = {k: v for k, v in all_models.items() if k in selected_names}
-            filtered_val_preds = rank_averaging_transform(
-                {k: v for k, v in val_preds.items() if k in selected_names}
-            )
-            filtered_test_preds = rank_averaging_transform(
-                {k: v for k, v in test_preds.items() if k in selected_names}
-            )
+            filtered_val_preds = rank_averaging_transform({k: v for k, v in val_preds.items() if k in selected_names})
+            filtered_test_preds = rank_averaging_transform({k: v for k, v in test_preds.items() if k in selected_names})
 
             weights = optimize_blending_weights(filtered_val_preds, res["y_val"], seed=args.seed)
 
