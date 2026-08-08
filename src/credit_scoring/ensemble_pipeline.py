@@ -6,25 +6,22 @@ blending ensemble with automated weight optimization for maximum ROC-AUC.
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from typing import Any
 
 import catboost as cb
-import joblib
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
+import xgboost as xgb
 from scipy.optimize import minimize
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-import xgboost as xgb
 
 from src.credit_scoring.features import (
-    ENGINEERED_FEATURES,
     ID_COLUMN,
     SERVING_RAW_FEATURES,
     TARGET_COLUMN,
@@ -116,14 +113,14 @@ def train_ensemble_pipeline(
     data_path = Path(data_dir)
     print("⏳ Building Home Credit feature set...")
     frame = build_home_credit_features(data_path, feature_set=feature_set, sample_size=sample_size)
-    
+
     if feature_set == "serving":
         raw_features = SERVING_RAW_FEATURES
     else:
         raw_features = [c for c in frame.columns if c not in (ID_COLUMN, TARGET_COLUMN)]
-        
+
     feature_cols = [c for c in frame.columns if c not in (ID_COLUMN, TARGET_COLUMN)]
-    
+
     split = make_split(frame, seed=seed)
     train_df = frame.iloc[split.train].copy()
     val_df = frame.iloc[split.validation].copy()
@@ -133,20 +130,20 @@ def train_ensemble_pipeline(
     y_val = val_df[TARGET_COLUMN].to_numpy(dtype=int)
     y_test = test_df[TARGET_COLUMN].to_numpy(dtype=int)
 
-    X_train_raw = train_df[feature_cols]
-    X_val_raw = val_df[feature_cols]
-    X_test_raw = test_df[feature_cols]
+    x_train_raw = train_df[feature_cols]
+    x_val_raw = val_df[feature_cols]
+    x_test_raw = test_df[feature_cols]
 
     linear_prep, tree_prep, num_cols, cat_cols = build_preprocessors(frame, feature_cols)
 
     print("⚡ Preprocessing feature matrices...")
-    X_train_lin = linear_prep.fit_transform(X_train_raw)
-    X_val_lin = linear_prep.transform(X_val_raw)
-    X_test_lin = linear_prep.transform(X_test_raw)
+    x_train_lin = linear_prep.fit_transform(x_train_raw)
+    x_val_lin = linear_prep.transform(x_val_raw)
+    x_test_lin = linear_prep.transform(x_test_raw)
 
-    X_train_tree = tree_prep.fit_transform(X_train_raw)
-    X_val_tree = tree_prep.transform(X_val_raw)
-    X_test_tree = tree_prep.transform(X_test_raw)
+    x_train_tree = tree_prep.fit_transform(x_train_raw)
+    x_val_tree = tree_prep.transform(x_val_raw)
+    x_test_tree = tree_prep.transform(x_test_raw)
 
     models: dict[str, Any] = {}
     val_preds: dict[str, np.ndarray] = {}
@@ -155,10 +152,10 @@ def train_ensemble_pipeline(
 
     print("🤖 [1/4] Training Baseline Logistic Regression...")
     logreg = LogisticRegression(C=0.1, max_iter=500, random_state=seed)
-    logreg.fit(X_train_lin, y_train)
+    logreg.fit(x_train_lin, y_train)
     models["LogisticRegression"] = logreg
-    val_preds["LogisticRegression"] = logreg.predict_proba(X_val_lin)[:, 1]
-    test_preds["LogisticRegression"] = logreg.predict_proba(X_test_lin)[:, 1]
+    val_preds["LogisticRegression"] = logreg.predict_proba(x_val_lin)[:, 1]
+    test_preds["LogisticRegression"] = logreg.predict_proba(x_test_lin)[:, 1]
     test_metrics["LogisticRegression"] = credit_metrics(y_test, test_preds["LogisticRegression"])
 
     print("🤖 [2/4] Training LightGBM Champion...")
@@ -172,10 +169,10 @@ def train_ensemble_pipeline(
         verbosity=-1,
         n_jobs=-1,
     )
-    lgbm.fit(X_train_tree, y_train)
+    lgbm.fit(x_train_tree, y_train)
     models["LightGBM"] = lgbm
-    val_preds["LightGBM"] = lgbm.predict_proba(X_val_tree)[:, 1]
-    test_preds["LightGBM"] = lgbm.predict_proba(X_test_tree)[:, 1]
+    val_preds["LightGBM"] = lgbm.predict_proba(x_val_tree)[:, 1]
+    test_preds["LightGBM"] = lgbm.predict_proba(x_test_tree)[:, 1]
     test_metrics["LightGBM"] = credit_metrics(y_test, test_preds["LightGBM"])
 
     print("🤖 [3/4] Training XGBoost...")
@@ -189,10 +186,10 @@ def train_ensemble_pipeline(
         n_jobs=-1,
         eval_metric="auc",
     )
-    xgboost_model.fit(X_train_tree, y_train)
+    xgboost_model.fit(x_train_tree, y_train)
     models["XGBoost"] = xgboost_model
-    val_preds["XGBoost"] = xgboost_model.predict_proba(X_val_tree)[:, 1]
-    test_preds["XGBoost"] = xgboost_model.predict_proba(X_test_tree)[:, 1]
+    val_preds["XGBoost"] = xgboost_model.predict_proba(x_val_tree)[:, 1]
+    test_preds["XGBoost"] = xgboost_model.predict_proba(x_test_tree)[:, 1]
     test_metrics["XGBoost"] = credit_metrics(y_test, test_preds["XGBoost"])
 
     print("🤖 [4/4] Training CatBoost...")
@@ -204,10 +201,10 @@ def train_ensemble_pipeline(
         verbose=0,
         thread_count=-1,
     )
-    catboost_model.fit(X_train_tree, y_train)
+    catboost_model.fit(x_train_tree, y_train)
     models["CatBoost"] = catboost_model
-    val_preds["CatBoost"] = catboost_model.predict_proba(X_val_tree)[:, 1]
-    test_preds["CatBoost"] = catboost_model.predict_proba(X_test_tree)[:, 1]
+    val_preds["CatBoost"] = catboost_model.predict_proba(x_val_tree)[:, 1]
+    test_preds["CatBoost"] = catboost_model.predict_proba(x_test_tree)[:, 1]
     test_metrics["CatBoost"] = credit_metrics(y_test, test_preds["CatBoost"])
 
     print("🎯 Optimizing Blending Weights on Validation Split...")

@@ -58,6 +58,7 @@ async def credit_extract_text(request: TextExtractRequest) -> TextExtractRespons
     """Extract structured credit application fields from natural language text."""
     try:
         from src.services.credit_scoring import extract_application_from_text
+
         res = await extract_application_from_text(request.text)
         return TextExtractResponse(
             extracted=res["extracted"],

@@ -50,7 +50,9 @@ def _run_eda(data_dir: Path, output: Path, sample_size: int | None) -> None:
                 "role": (
                     "target/application entity"
                     if TARGET_COLUMN in sample
-                    else "relational history" if ID_COLUMN in sample else "metadata/submission"
+                    else "relational history"
+                    if ID_COLUMN in sample
+                    else "metadata/submission"
                 ),
             }
         )

@@ -257,9 +257,7 @@ def _aggregate_recent_records(
     for window in windows:
         recent = ordered.groupby(ID_COLUMN, sort=False).head(window)
         spec = {column: ["mean", "max", "min"] for column in value_columns}
-        outputs.append(
-            _flatten_aggregation_columns(recent.groupby(ID_COLUMN).agg(spec), f"{prefix}_RECENT_{window}")
-        )
+        outputs.append(_flatten_aggregation_columns(recent.groupby(ID_COLUMN).agg(spec), f"{prefix}_RECENT_{window}"))
     return outputs
 
 
@@ -367,9 +365,7 @@ def aggregate_installments(data_dir: Path, applicant_ids: set[int] | None = None
             "FE_INSTAL_PAYMENT_RATIO": ["mean", "min"],
             "FE_INSTAL_LATE": ["mean", "sum"],
         }
-        recent = _flatten_aggregation_columns(
-            recent_year.groupby(ID_COLUMN).agg(recent_spec), "INSTAL_RECENT_12M"
-        )
+        recent = _flatten_aggregation_columns(recent_year.groupby(ID_COLUMN).agg(recent_spec), "INSTAL_RECENT_12M")
         output = output.merge(recent, on=ID_COLUMN, how="left", validate="one_to_one")
     return output
 
@@ -411,9 +407,7 @@ def aggregate_credit_card(data_dir: Path, applicant_ids: set[int] | None = None)
     card = pd.read_csv(data_dir / "credit_card_balance.csv", usecols=columns)
     card = _filter_ids(card, applicant_ids)
     card = card[card["MONTHS_BALANCE"].isna() | (card["MONTHS_BALANCE"] <= 0)].copy()
-    card["FE_CC_UTILIZATION"] = safe_divide(
-        _series(card, "AMT_BALANCE"), _series(card, "AMT_CREDIT_LIMIT_ACTUAL")
-    )
+    card["FE_CC_UTILIZATION"] = safe_divide(_series(card, "AMT_BALANCE"), _series(card, "AMT_CREDIT_LIMIT_ACTUAL"))
     values = [column for column in card.columns if column != ID_COLUMN]
     spec = {column: ["min", "max", "mean", "sum"] for column in values}
     output = _flatten_aggregation_columns(card.groupby(ID_COLUMN).agg(spec), "CC")

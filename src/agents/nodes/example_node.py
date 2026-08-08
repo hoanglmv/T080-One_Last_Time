@@ -1,4 +1,3 @@
-import os
 from src.agents.state import AgentState
 from src.config import get_settings
 
@@ -23,6 +22,7 @@ async def respond_node(state: AgentState) -> dict:
     if settings.openai_api_key:
         try:
             import openai
+
             client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
             completion = await client.chat.completions.create(
                 model=settings.model_name or "gpt-4o-mini",
@@ -34,12 +34,12 @@ async def respond_node(state: AgentState) -> dict:
                             "thuộc hệ thống Home Credit POC. Hãy trả lời ngắn gọn, chuyên nghiệp, lịch sự bằng tiếng Việt. "
                             "Cung cấp kiến thức về điểm tín dụng POC (0-100), xác suất vỡ nợ P(Default), kiểm định đòn bẩy "
                             "Financial Sanity Guard (crd/inc > 25), mã SHAP Reason Codes và lời khuyên tài chính cá nhân."
-                        )
+                        ),
                     },
-                    {"role": "user", "content": query}
+                    {"role": "user", "content": query},
                 ],
                 temperature=0.3,
-                max_tokens=500
+                max_tokens=500,
             )
             response_text = completion.choices[0].message.content
             return {"response": response_text}
@@ -88,7 +88,7 @@ async def respond_node(state: AgentState) -> dict:
     else:
         response = (
             f"🤖 **Trợ Lý AI Thẩm Định Tín Dụng (ACS Advisor)**:\n\n"
-            f"Tôi đã ghi nhận câu hỏi của bạn: *\"{query}\"*\n\n"
+            f'Tôi đã ghi nhận câu hỏi của bạn: *"{query}"*\n\n'
             f"Hệ thống Alternative Credit Scoring sử dụng mô hình **Champion LightGBM + Platt Calibration** "
             f"với chỉ số **ROC-AUC = 0.7646** và **KS Statistic = 40.46%**.\n\n"
             f"Bạn có thể hỏi tôi về:\n"
@@ -99,4 +99,3 @@ async def respond_node(state: AgentState) -> dict:
         )
 
     return {"response": response}
-

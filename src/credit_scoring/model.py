@@ -108,9 +108,13 @@ class CreditModelBundle:
             annuity_val = float(row.get("AMT_ANNUITY", np.nan) or np.nan)
             if pd.notna(income_val) and income_val > 0:
                 if pd.notna(credit_val) and (credit_val / income_val > 25.0 or credit_val > 1e12):
-                    warnings.append("Cảnh báo đòn bẩy tài chính cực hạn: Khoản vay vượt quá 25 lần thu nhập hoặc là bất thường OOD.")
+                    warnings.append(
+                        "Cảnh báo đòn bẩy tài chính cực hạn: Khoản vay vượt quá 25 lần thu nhập hoặc là bất thường OOD."
+                    )
                 if pd.notna(annuity_val) and annuity_val / income_val > 1.5:
-                    warnings.append("Cảnh báo đòn bẩy tài chính cực hạn: Nghĩa vụ trả hàng tháng vượt quá 150% thu nhập.")
+                    warnings.append(
+                        "Cảnh báo đòn bẩy tài chính cực hạn: Nghĩa vụ trả hàng tháng vượt quá 150% thu nhập."
+                    )
             quality.append(
                 {
                     "completeness": round(float(completeness), 4),
