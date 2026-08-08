@@ -1,7 +1,13 @@
-.PHONY: run test lint format typecheck check clean
+.PHONY: run test lint format typecheck check clean docker-run docker-stop
 
 run:
 	uv run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+
+docker-run:
+	docker compose up --build
+
+docker-stop:
+	docker compose down
 
 test:
 	uv run pytest tests/ -v

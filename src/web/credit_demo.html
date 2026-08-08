@@ -305,9 +305,10 @@
     <!-- Quick Preset Selection Toolbar -->
     <div class="preset-toolbar">
       <span class="preset-label">Hồ sơ mẫu 1-Click:</span>
-      <button type="button" class="preset-btn" onclick="loadPresetProfile('good')">👨‍💼 Hồ sơ 1: Điểm tốt (An toàn)</button>
+      <button type="button" class="preset-btn" onclick="loadPresetProfile('good')">👨‍💼 Hồ sơ 1: Điểm tốt (Hybrid Model)</button>
       <button type="button" class="preset-btn" onclick="loadPresetProfile('high_leverage')">⚠️ Hồ sơ 2: Đòn bẩy cao OOD (Sanity Guard)</button>
-      <button type="button" class="preset-btn" onclick="loadPresetProfile('thin_file')">📱 Hồ sơ 3: Thin-file (Dữ liệu ACS)</button>
+      <button type="button" class="preset-btn" onclick="loadPresetProfile('thin_file')">📱 Hồ sơ 3: Thin-file (Hybrid ACS)</button>
+      <button type="button" class="preset-btn" onclick="loadPresetProfile('alternative_only')" style="border-color: #f59e0b; color: #d97706; background: #fef3c7;">⚡ Hồ sơ 4: Tự động kích hoạt Alternative-Only Model (Chỉ Dữ Liệu Thay Thế)</button>
     </div>
   </header>
 
@@ -490,6 +491,19 @@
         <div class="panel-title">
           <h2>Điểm số & Giải thích</h2>
           <span id="model-version" class="tag"></span>
+        </div>
+        <!-- Auto-Detected Model Routing Banner -->
+        <div id="routing-banner" style="margin-bottom: 20px; padding: 14px 16px; border-radius: 16px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(16, 185, 129, 0.06)); border: 1px solid rgba(99, 102, 241, 0.25);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.90rem; color: var(--indigo-600);">
+              <span id="routing-icon">🤖</span>
+              <span id="routing-model-title">Mô hình Tự động Kích hoạt</span>
+            </div>
+            <span id="routing-badge" class="tag" style="background: var(--indigo-50); color: var(--indigo-600); border-color: rgba(99,102,241,0.3); font-weight: 700;">—</span>
+          </div>
+          <div id="routing-reason" style="margin-top: 8px; font-size: 0.82rem; color: var(--slate-700); line-height: 1.45;">
+            —
+          </div>
         </div>
 
         <!-- Animated Speedometer Gauge -->
@@ -693,16 +707,22 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
         document.querySelector('#input-EXT_SOURCE_1').value = '0.30';
         document.querySelector('#input-EXT_SOURCE_2').value = '0.25';
         document.querySelector('#input-EXT_SOURCE_3').value = '0.20';
-      } else if (type === 'thin_file') {
-        document.querySelector('#input-AMT_INCOME_TOTAL').value = '150.000';
-        document.querySelector('#input-AMT_CREDIT').value = '300.000';
-        document.querySelector('#input-AMT_ANNUITY').value = '18.000';
-        document.querySelector('#input-AMT_GOODS_PRICE').value = '280.000';
-        document.querySelector('#input-AGE_YEARS_INPUT').value = '29';
-        document.querySelector('#input-EMPLOYMENT_YEARS_INPUT').value = '4';
-        document.querySelector('#input-EXT_SOURCE_1').value = '0.50';
-        document.querySelector('#input-EXT_SOURCE_2').value = '0.58';
-        document.querySelector('#input-EXT_SOURCE_3').value = '0.62';
+      } else if (type === 'alternative_only') {
+        // Tự động để trống TOÀN BỘ dữ liệu bureau / nợ vay truyền thống
+        document.querySelector('#input-EXT_SOURCE_1').value = '';
+        document.querySelector('#input-EXT_SOURCE_2').value = '';
+        document.querySelector('#input-EXT_SOURCE_3').value = '';
+        document.querySelector('#input-AMT_CREDIT').value = '';
+        document.querySelector('#input-AMT_ANNUITY').value = '';
+        document.querySelector('#input-AMT_GOODS_PRICE').value = '';
+
+        // Điền các trường dữ liệu thay thế (Nhân khẩu học, Hành vi di động, Cư trú)
+        document.querySelector('#input-AMT_INCOME_TOTAL').value = '15.000.000';
+        document.querySelector('#input-AGE_YEARS_INPUT').value = '27';
+        document.querySelector('#input-EMPLOYMENT_YEARS_INPUT').value = '3';
+        document.querySelector('#input-DAYS_LAST_PHONE_CHANGE').value = '450';
+        document.querySelector('#input-NAME_HOUSING_TYPE').value = 'House / apartment';
+        document.querySelector('#input-NAME_EDUCATION_TYPE').value = 'Higher education';
       }
 
       currencyFields.forEach(fieldId => updateCurrencyField(fieldId));
@@ -916,8 +936,25 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
       document.querySelector("#result").hidden = false;
       document.querySelector("#review-empty-state").hidden = true;
       document.querySelector("#review-workspace").hidden = false;
-      document.querySelector("#model-version").textContent = result.model_version.split("-").slice(-2).join("-");
-      
+      const mvElem = document.querySelector("#model-version");
+      if (mvElem && result.model_version) {
+        mvElem.textContent = result.model_version.split("-").slice(-2).join("-");
+      }
+
+      // Auto-Detected Model Banner Updating
+      if (result.auto_detected_model) {
+        const isAlt = result.auto_detected_model.includes("Alternative-Only");
+        document.querySelector("#routing-model-title").textContent = result.auto_detected_model;
+        document.querySelector("#routing-reason").textContent = result.model_routing_reason;
+        document.querySelector("#routing-icon").textContent = isAlt ? "📱" : "🏦";
+        
+        const badge = document.querySelector("#routing-badge");
+        badge.textContent = isAlt ? "⚡ Dữ liệu Thay thế (Thin-file Model)" : "🏦 Dữ liệu Truyền thống + Thay thế";
+        badge.style.background = isAlt ? "#fef3c7" : "#eef2ff";
+        badge.style.color = isAlt ? "#d97706" : "#4f46e5";
+        badge.style.borderColor = isAlt ? "rgba(245,158,11,0.4)" : "rgba(99,102,241,0.3)";
+      }
+
       const score = result.poc_score;
       document.querySelector("#score-value").textContent = score.toFixed(1);
       

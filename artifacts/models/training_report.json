@@ -1,12 +1,12 @@
 {
-  "model_version": "hc-poc-20260805T162444Z-52e96b89",
-  "feature_set": "full",
+  "model_version": "hc-poc-20260808T111014Z-52e96b89",
+  "feature_set": "alternative_only",
   "seed": 42,
   "data_profile": {
     "source": "data/raw/home-credit-default-risk/application_train.csv",
     "source_sha256": "52e96b895b1112e1c853f670e58372719c8441c5ed1c57ac2f7fad559d784f5f",
     "rows": 50000,
-    "columns": 418,
+    "columns": 39,
     "target_semantics": "TARGET=1 biểu thị payment difficulties theo định nghĩa ẩn danh của cuộc thi; không đồng nhất mặc định với Basel 90+ DPD hoặc mọi định nghĩa 'default'.",
     "target_counts": {
       "0": 45974,
@@ -18,84 +18,84 @@
     "days_employed_sentinel_remaining": 0,
     "top_missing_columns": [
       {
-        "field": "CC_AMT_PAYMENT_CURRENT_MEAN",
-        "missing_rate": 0.80548
+        "field": "OCCUPATION_TYPE",
+        "missing_rate": 0.31308
       },
       {
-        "field": "CC_AMT_PAYMENT_CURRENT_MAX",
-        "missing_rate": 0.80548
+        "field": "FE_EMPLOYMENT_TO_AGE",
+        "missing_rate": 0.17848
       },
       {
-        "field": "CC_AMT_PAYMENT_CURRENT_MIN",
-        "missing_rate": 0.80548
+        "field": "DAYS_EMPLOYED",
+        "missing_rate": 0.17848
       },
       {
-        "field": "BUREAU_AMT_ANNUITY_MAX",
-        "missing_rate": 0.74086
+        "field": "FE_EMPLOYMENT_YEARS",
+        "missing_rate": 0.17848
       },
       {
-        "field": "BUREAU_AMT_ANNUITY_MIN",
-        "missing_rate": 0.74086
+        "field": "OBS_30_CNT_SOCIAL_CIRCLE",
+        "missing_rate": 0.00336
       },
       {
-        "field": "BUREAU_AMT_ANNUITY_MEAN",
-        "missing_rate": 0.74086
+        "field": "DEF_30_CNT_SOCIAL_CIRCLE",
+        "missing_rate": 0.00336
       },
       {
-        "field": "CC_FE_CC_UTILIZATION_MAX",
-        "missing_rate": 0.72244
+        "field": "OBS_60_CNT_SOCIAL_CIRCLE",
+        "missing_rate": 0.00336
       },
       {
-        "field": "CC_FE_CC_UTILIZATION_MEAN",
-        "missing_rate": 0.72244
+        "field": "DEF_60_CNT_SOCIAL_CIRCLE",
+        "missing_rate": 0.00336
       },
       {
-        "field": "CC_FE_CC_UTILIZATION_MIN",
-        "missing_rate": 0.72244
+        "field": "CNT_FAM_MEMBERS",
+        "missing_rate": 2e-05
       },
       {
-        "field": "CC_AMT_DRAWINGS_CURRENT_SUM",
-        "missing_rate": 0.7197
+        "field": "FE_INCOME_PER_PERSON",
+        "missing_rate": 2e-05
       },
       {
-        "field": "CC_AMT_PAYMENT_TOTAL_CURRENT_MIN",
-        "missing_rate": 0.7197
+        "field": "FE_PHONE_TO_AGE",
+        "missing_rate": 2e-05
       },
       {
-        "field": "CC_RECORD_COUNT",
-        "missing_rate": 0.7197
+        "field": "FE_PHONE_CHANGE_YEARS",
+        "missing_rate": 2e-05
       },
       {
-        "field": "CC_AMT_PAYMENT_TOTAL_CURRENT_MAX",
-        "missing_rate": 0.7197
+        "field": "DAYS_LAST_PHONE_CHANGE",
+        "missing_rate": 2e-05
       },
       {
-        "field": "CC_AMT_PAYMENT_TOTAL_CURRENT_MEAN",
-        "missing_rate": 0.7197
+        "field": "SK_ID_CURR",
+        "missing_rate": 0.0
       },
       {
-        "field": "CC_AMT_PAYMENT_CURRENT_SUM",
-        "missing_rate": 0.7197
+        "field": "TARGET",
+        "missing_rate": 0.0
       },
       {
-        "field": "CC_AMT_PAYMENT_TOTAL_CURRENT_SUM",
-        "missing_rate": 0.7197
+        "field": "DAYS_BIRTH",
+        "missing_rate": 0.0
       },
       {
-        "field": "CC_AMT_CREDIT_LIMIT_ACTUAL_MIN",
-        "missing_rate": 0.7197
+        "field": "AMT_INCOME_TOTAL",
+        "missing_rate": 0.0
       },
       {
-        "field": "CC_AMT_BALANCE_MAX",
-        "missing_rate": 0.7197
+        "field": "NAME_CONTRACT_TYPE",
+        "missing_rate": 0.0
       },
       {
-        "field": "CC_AMT_BALANCE_MIN",
-        "missing_rate": 0.7197
+        "field": "CODE_GENDER",
+        "missing_rate": 0.0
       },
       {
-        "field": "CC_MONTHS_BALANCE_SUM",
-        "missing_rate": 0.7197
+        "field": "FLAG_EMP_PHONE",
+        "missing_rate": 0.0
       }
     ],
     "time_columns_present": []
@@ -107,139 +107,134 @@
     "validation_rows": 7500,
     "test_rows": 7500
   },
-  "selected_feature_count": 411,
+  "selected_feature_count": 36,
   "dropped_features": {
     "missing_gt_95pct": [],
-    "constant": [
-      "FLAG_DOCUMENT_10",
-      "FLAG_DOCUMENT_12",
-      "CC_SK_DPD_MIN",
-      "CC_SK_DPD_DEF_MIN"
-    ],
+    "constant": [],
     "high_cardinality_category": []
   },
   "candidate_validation": {
     "logistic_regression": {
       "metrics": {
-        "roc_auc": 0.7681461371214332,
-        "pr_auc": 0.22266558721988264,
-        "average_precision": 0.22391264462004012,
-        "ks": 0.4254429096049538,
-        "gini": 0.5362922742428664,
-        "brier": 0.19072418290602897,
-        "log_loss": 0.5661930782825898,
-        "ece_10": 0.3103025998730344,
+        "roc_auc": 0.6620675101027949,
+        "pr_auc": 0.14459850125958815,
+        "average_precision": 0.14544641284855828,
+        "ks": 0.2470219803014705,
+        "gini": 0.3241350202055897,
+        "brier": 0.2303022333198861,
+        "log_loss": 0.6516687524493153,
+        "ece_10": 0.38263390509844786,
         "default_rate": 0.08053333333333333,
-        "mean_prediction": 0.39083593320636767,
+        "mean_prediction": 0.46316723843178115,
         "n": 7500.0
       },
       "stability": null,
-      "selection_score": 0.7681461371214332
+      "selection_score": 0.6620675101027949
     },
     "lightgbm": {
       "metrics": {
-        "roc_auc": 0.7826789884912646,
-        "pr_auc": 0.24880207524785827,
-        "average_precision": 0.2503485918993092,
-        "ks": 0.4234943762388408,
-        "gini": 0.5653579769825292,
-        "brier": 0.06724671259597814,
-        "log_loss": 0.24120309166791237,
-        "ece_10": 0.006340546046092684,
+        "roc_auc": 0.6572792462469845,
+        "pr_auc": 0.13702218626481588,
+        "average_precision": 0.13826353673661734,
+        "ks": 0.24382212166377282,
+        "gini": 0.31455849249396906,
+        "brier": 0.07250784806478781,
+        "log_loss": 0.269259495859972,
+        "ece_10": 0.00555751281109359,
         "default_rate": 0.08053333333333333,
-        "mean_prediction": 0.07793934867293821,
+        "mean_prediction": 0.08207879081774587,
         "n": 7500.0
       },
       "stability": null,
-      "selection_score": 0.7826789884912646
+      "selection_score": 0.6572792462469845
     }
   },
-  "champion": "lightgbm",
+  "champion": "logistic_regression",
   "calibration_validation_raw": {
-    "roc_auc": 0.7826789884912646,
-    "pr_auc": 0.24880207524785827,
-    "average_precision": 0.2503485918993092,
-    "ks": 0.4234943762388408,
-    "gini": 0.5653579769825292,
-    "brier": 0.06724671259597814,
-    "log_loss": 0.24120309166791237,
-    "ece_10": 0.006340546046092684,
+    "roc_auc": 0.6620675101027949,
+    "pr_auc": 0.14459850125958815,
+    "average_precision": 0.14544641284855828,
+    "ks": 0.2470219803014705,
+    "gini": 0.3241350202055897,
+    "brier": 0.2303022333198861,
+    "log_loss": 0.6516687524493153,
+    "ece_10": 0.38263390509844786,
     "default_rate": 0.08053333333333333,
-    "mean_prediction": 0.07793934867293821,
+    "mean_prediction": 0.46316723843178115,
     "n": 7500.0
   },
   "calibration_validation_platt": {
-    "roc_auc": 0.7826789884912646,
-    "pr_auc": 0.24880207524785827,
-    "average_precision": 0.2503485918993092,
-    "ks": 0.4234943762388408,
-    "gini": 0.5653579769825292,
-    "brier": 0.06727395863179354,
-    "log_loss": 0.24113784913816727,
-    "ece_10": 0.0057744066444833046,
+    "roc_auc": 0.6620675101027949,
+    "pr_auc": 0.14459850125958815,
+    "average_precision": 0.14544641284855828,
+    "ks": 0.2470219803014705,
+    "gini": 0.3241350202055897,
+    "brier": 0.0721164302373974,
+    "log_loss": 0.2676724056909302,
+    "ece_10": 0.001852601617307606,
     "default_rate": 0.08053333333333333,
-    "mean_prediction": 0.08052960376177158,
+    "mean_prediction": 0.08053633013439457,
     "n": 7500.0
   },
   "champion_test_metrics": {
-    "roc_auc": 0.7646185618690555,
-    "pr_auc": 0.26472575528018955,
-    "average_precision": 0.26569145454558946,
-    "ks": 0.40459485103179116,
-    "gini": 0.529237123738111,
-    "brier": 0.06666811743881783,
-    "log_loss": 0.24261529239384436,
-    "ece_10": 0.004716351398762951,
+    "roc_auc": 0.665773228745717,
+    "pr_auc": 0.14599461672229355,
+    "average_precision": 0.1467802884364276,
+    "ks": 0.2491452958620795,
+    "gini": 0.33154645749143397,
+    "brier": 0.07202239554776149,
+    "log_loss": 0.26702950163421996,
+    "ece_10": 0.004619595583175972,
     "default_rate": 0.08053333333333333,
-    "mean_prediction": 0.08031582382639758,
+    "mean_prediction": 0.07986591288506809,
     "n": 7500.0
   },
-  "score_psi_train_vs_test": 0.0020964152131728573,
+  "score_psi_train_vs_test": 0.0009278984854587357,
   "temporal_stability": {
     "available": false,
     "reason": "Home Credit 2018 không có WEEK_NUM/date_decision. Không dùng SK_ID hoặc relative DAYS làm timestamp giả."
   },
   "fairness_by_gender": {
     "available": true,
-    "threshold": 0.06719723618428573,
+    "threshold": 0.08016925319139497,
     "groups": [
       {
         "group": "F",
         "n": 4966,
         "default_rate": 0.07088199758356827,
-        "predicted_high_risk_rate": 0.3266210229561015,
-        "mean_prediction": 0.07409140548500591,
-        "tpr": 0.6818181818181818,
-        "fpr": 0.29952319029042046,
-        "brier": 0.060074652215143146,
-        "roc_auc": 0.7550753388895456
+        "predicted_high_risk_rate": 0.3600483286347161,
+        "mean_prediction": 0.07489317058940932,
+        "tpr": 0.5539772727272727,
+        "fpr": 0.34525357607282187,
+        "brier": 0.06447809611109344,
+        "roc_auc": 0.6549680813334909
       },
       {
         "group": "M",
         "n": 2533,
         "default_rate": 0.09948677457560205,
-        "predicted_high_risk_rate": 0.4168969601263324,
-        "mean_prediction": 0.09252604262476406,
-        "tpr": 0.7658730158730159,
-        "fpr": 0.3783428320911881,
-        "brier": 0.07961953314708134,
-        "roc_auc": 0.7708676923933391
+        "predicted_high_risk_rate": 0.49861823924200555,
+        "mean_prediction": 0.08963152392031762,
+        "tpr": 0.7142857142857143,
+        "fpr": 0.4747917580008768,
+        "brier": 0.0868410111367418,
+        "roc_auc": 0.6678479224511666
       }
     ],
     "gaps": {
-      "max_min_predicted_high_risk_rate_gap": 0.09027593717023091,
-      "max_min_tpr_gap": 0.08405483405483416,
-      "max_min_fpr_gap": 0.07881964180076761,
-      "max_min_brier_gap": 0.019544880931938194,
-      "max_min_roc_auc_gap": 0.015792353503793488
+      "max_min_predicted_high_risk_rate_gap": 0.13856991060728946,
+      "max_min_tpr_gap": 0.1603084415584416,
+      "max_min_fpr_gap": 0.12953818192805494,
+      "max_min_brier_gap": 0.022362915025648356,
+      "max_min_roc_auc_gap": 0.012879841117675705
     },
     "limitation": "Chỉ là kiểm tra chẩn đoán trên dataset; không xác lập tuân thủ pháp lý hoặc fairness nhân quả."
   },
-  "decision_threshold_for_diagnostics_only": 0.06719723618428573,
+  "decision_threshold_for_diagnostics_only": 0.08016925319139497,
   "risk_band_quantile_thresholds": [
-    0.04866800511669406,
-    0.11072345059920734,
-    0.2695488610398227
+    0.07157445405275326,
+    0.11039676907958758,
+    0.16831830319679295
   ],
   "limitations": [
     "Không có temporal key trong Home Credit 2018 nên chưa có out-of-time validation.",

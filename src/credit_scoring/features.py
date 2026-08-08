@@ -70,6 +70,47 @@ ENGINEERED_FEATURES = (
     "FE_EXT_SOURCE_MISSING_COUNT",
 )
 
+ALTERNATIVE_ONLY_RAW_FEATURES = (
+    "NAME_CONTRACT_TYPE",
+    "AMT_INCOME_TOTAL",
+    "DAYS_BIRTH",
+    "DAYS_EMPLOYED",
+    "DAYS_REGISTRATION",
+    "DAYS_ID_PUBLISH",
+    "DAYS_LAST_PHONE_CHANGE",
+    "FLAG_EMP_PHONE",
+    "FLAG_WORK_PHONE",
+    "FLAG_EMAIL",
+    "CNT_CHILDREN",
+    "CNT_FAM_MEMBERS",
+    "REGION_RATING_CLIENT",
+    "REGION_RATING_CLIENT_W_CITY",
+    "FLAG_OWN_CAR",
+    "FLAG_OWN_REALTY",
+    "NAME_INCOME_TYPE",
+    "NAME_EDUCATION_TYPE",
+    "NAME_FAMILY_STATUS",
+    "NAME_HOUSING_TYPE",
+    "OCCUPATION_TYPE",
+    "ORGANIZATION_TYPE",
+    "OBS_30_CNT_SOCIAL_CIRCLE",
+    "DEF_30_CNT_SOCIAL_CIRCLE",
+    "OBS_60_CNT_SOCIAL_CIRCLE",
+    "DEF_60_CNT_SOCIAL_CIRCLE",
+)
+
+ALTERNATIVE_ONLY_ENGINEERED_FEATURES = (
+    "FE_INCOME_PER_PERSON",
+    "FE_INCOME_PER_CHILD",
+    "FE_EMPLOYMENT_TO_AGE",
+    "FE_AGE_YEARS",
+    "FE_EMPLOYMENT_YEARS",
+    "FE_REGISTRATION_YEARS",
+    "FE_ID_PUBLISH_YEARS",
+    "FE_PHONE_CHANGE_YEARS",
+    "FE_PHONE_TO_AGE",
+)
+
 FEATURE_DESCRIPTIONS = {
     "AMT_INCOME_TOTAL": "Thu nhập khai báo của khách hàng",
     "AMT_CREDIT": "Giá trị khoản tín dụng đề nghị",
@@ -431,8 +472,8 @@ def build_home_credit_features(
     application columns. ``full`` additionally aggregates the five relational
     tables. Full mode is intentionally explicit because it is memory intensive.
     """
-    if feature_set not in {"serving", "application", "full"}:
-        raise ValueError("feature_set must be one of: serving, application, full")
+    if feature_set not in {"serving", "application", "full", "alternative_only"}:
+        raise ValueError("feature_set must be one of: serving, application, full, alternative_only")
     application = pd.read_csv(data_dir / "application_train.csv", nrows=sample_size)
     application = engineer_application_features(application)
 
@@ -446,6 +487,16 @@ def build_home_credit_features(
             *PROTECTED_COLUMNS,
             *SERVING_RAW_FEATURES,
             *ENGINEERED_FEATURES,
+            "DAYS_EMPLOYED_ANOMALY",
+        ]
+        return application[[column for column in selected if column in application]].copy()
+    if feature_set == "alternative_only":
+        selected = [
+            ID_COLUMN,
+            TARGET_COLUMN,
+            *PROTECTED_COLUMNS,
+            *ALTERNATIVE_ONLY_RAW_FEATURES,
+            *ALTERNATIVE_ONLY_ENGINEERED_FEATURES,
             "DAYS_EMPLOYED_ANOMALY",
         ]
         return application[[column for column in selected if column in application]].copy()
