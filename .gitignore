@@ -29,7 +29,14 @@ env/
 Thumbs.db
 
 # Data (never commit large data)
-data/
+data/*
+!data/DATA.md
+!data/README.md
+.kaggle-cache/
+.kaggle-cli/
+artifacts/*
+!artifacts/models/
+catboost_info/
 *.db
 *.sqlite3
 
