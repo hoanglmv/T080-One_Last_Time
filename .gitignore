@@ -32,6 +32,8 @@ Thumbs.db
 data/*
 !data/DATA.md
 !data/README.md
+.kaggle-cache/
+.kaggle-cli/
 artifacts/*
 !artifacts/models/
 catboost_info/

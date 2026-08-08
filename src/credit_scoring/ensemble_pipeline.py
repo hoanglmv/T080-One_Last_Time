@@ -14,7 +14,8 @@ import lightgbm as lgb
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-from scipy.optimize import minimize
+from scipy.optimize import differential_evolution
+from scipy.stats import rankdata
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
@@ -79,28 +80,87 @@ def build_preprocessors(
     return linear_preprocessor, tree_preprocessor, numeric_cols, categorical_cols
 
 
-def optimize_blending_weights(predictions: dict[str, np.ndarray], y_true: np.ndarray) -> dict[str, float]:
-    """Find non-negative weights summing to 1 that maximize ROC-AUC on validation split."""
+def rank_averaging_transform(predictions: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+    """Convert each model's scores to percentile ranks for scale-free blending."""
+    ranked: dict[str, np.ndarray] = {}
+    for name, values in predictions.items():
+        scores = np.asarray(values, dtype=float)
+        if scores.ndim != 1 or len(scores) == 0:
+            raise ValueError(f"Predictions for {name} must be a non-empty 1D array")
+        ranked[name] = rankdata(scores, method="average") / len(scores)
+    return ranked
+
+
+def optimize_blending_weights(
+    predictions: dict[str, np.ndarray], y_true: np.ndarray, *, seed: int = 42
+) -> dict[str, float]:
+    """Maximize ROC-AUC with a deterministic, gradient-free optimizer.
+
+    A softmax maps unconstrained optimizer variables to the probability simplex.
+    Single-model vertices are also evaluated, so the blend cannot score below the
+    best component on the optimization split.
+    """
+    if not predictions:
+        raise ValueError("At least one prediction vector is required")
     model_names = list(predictions.keys())
     pred_matrix = np.column_stack([predictions[name] for name in model_names])
     num_models = len(model_names)
 
     from sklearn.metrics import roc_auc_score
 
-    def loss_func(weights: np.ndarray) -> float:
-        # We minimize -ROC_AUC
+    def softmax(logits: np.ndarray) -> np.ndarray:
+        shifted = logits - np.max(logits)
+        exp = np.exp(shifted)
+        return exp / exp.sum()
+
+    def loss_func(logits: np.ndarray) -> float:
+        weights = softmax(logits)
         blended = np.dot(pred_matrix, weights)
         return -float(roc_auc_score(y_true, blended))
 
-    # Initial equal weights
-    init_weights = np.ones(num_models) / num_models
-    bounds = [(0.0, 1.0) for _ in range(num_models)]
-    constraints = {"type": "eq", "fun": lambda w: np.sum(w) - 1.0}
+    result = differential_evolution(
+        loss_func,
+        bounds=[(-6.0, 6.0)] * num_models,
+        seed=seed,
+        maxiter=80,
+        popsize=12,
+        polish=False,
+        workers=1,
+    )
+    weights = softmax(result.x)
 
-    res = minimize(loss_func, init_weights, method="SLSQP", bounds=bounds, constraints=constraints)
-
-    weights = res.x / np.sum(res.x)
+    # A rank objective is piecewise constant. Explicitly checking vertices makes
+    # this routine robust when the evolutionary search lands on a plateau.
+    candidate_weights = [weights, np.ones(num_models) / num_models]
+    candidate_weights.extend(np.eye(num_models))
+    weights = min(candidate_weights, key=lambda w: loss_func(np.log(np.clip(w, 1e-12, 1.0))))
     return {name: float(w) for name, w in zip(model_names, weights)}
+
+
+def _prepare_catboost_frame(
+    train: pd.DataFrame,
+    *others: pd.DataFrame,
+    numeric_cols: list[str],
+    categorical_cols: list[str],
+    numeric_fill: pd.Series | dict[str, float] | None = None,
+) -> tuple[pd.DataFrame, ...]:
+    """Impute while preserving categorical columns for CatBoost native handling."""
+    train_out = train.copy()
+    fill_values = pd.Series(numeric_fill) if numeric_fill is not None else train_out[numeric_cols].median()
+    for column in numeric_cols:
+        train_out[column] = pd.to_numeric(train_out[column], errors="coerce").fillna(fill_values[column])
+    for column in categorical_cols:
+        train_out[column] = train_out[column].fillna("__MISSING__").astype(str)
+
+    outputs = [train_out]
+    for frame in others:
+        output = frame.copy()
+        for column in numeric_cols:
+            output[column] = pd.to_numeric(output[column], errors="coerce").fillna(fill_values[column])
+        for column in categorical_cols:
+            output[column] = output[column].fillna("__MISSING__").astype(str)
+        outputs.append(output)
+    return tuple(outputs)
 
 
 def train_ensemble_pipeline(
@@ -116,6 +176,8 @@ def train_ensemble_pipeline(
     subsample: float | None = None,
     colsample_bytree: float | None = None,
     c_reg: float | None = None,
+    use_rank_blending: bool = True,
+    drop_weak_logreg: bool = True,
 ) -> dict[str, Any]:
     data_path = Path(data_dir)
     print("⏳ Building Home Credit feature set...")
@@ -151,6 +213,10 @@ def train_ensemble_pipeline(
     x_train_tree = tree_prep.fit_transform(x_train_raw)
     x_val_tree = tree_prep.transform(x_val_raw)
     x_test_tree = tree_prep.transform(x_test_raw)
+
+    x_train_cat, x_val_cat, x_test_cat = _prepare_catboost_frame(
+        x_train_raw, x_val_raw, x_test_raw, numeric_cols=num_cols, categorical_cols=cat_cols
+    )
 
     models: dict[str, Any] = {}
     val_preds: dict[str, np.ndarray] = {}
@@ -225,14 +291,30 @@ def train_ensemble_pipeline(
         verbose=0,
         thread_count=-1,
     )
-    catboost_model.fit(x_train_tree, y_train)
+    catboost_model.fit(x_train_cat, y_train, cat_features=cat_cols)
     models["CatBoost"] = catboost_model
-    val_preds["CatBoost"] = catboost_model.predict_proba(x_val_tree)[:, 1]
-    test_preds["CatBoost"] = catboost_model.predict_proba(x_test_tree)[:, 1]
+    val_preds["CatBoost"] = catboost_model.predict_proba(x_val_cat)[:, 1]
+    test_preds["CatBoost"] = catboost_model.predict_proba(x_test_cat)[:, 1]
     test_metrics["CatBoost"] = credit_metrics(y_test, test_preds["CatBoost"])
 
     print("🎯 Optimizing Blending Weights on Validation Split...")
-    optimal_weights = optimize_blending_weights(val_preds, y_val)
+    blend_val_preds = rank_averaging_transform(val_preds) if use_rank_blending else val_preds
+    blend_test_preds = rank_averaging_transform(test_preds) if use_rank_blending else test_preds
+
+    candidate_names = list(blend_val_preds)
+    if drop_weak_logreg and "LogisticRegression" in candidate_names and len(candidate_names) > 1:
+        from sklearn.metrics import roc_auc_score
+
+        without_lr = {k: v for k, v in blend_val_preds.items() if k != "LogisticRegression"}
+        weights_all = optimize_blending_weights(blend_val_preds, y_val, seed=seed)
+        weights_without = optimize_blending_weights(without_lr, y_val, seed=seed)
+        auc_all = roc_auc_score(y_val, sum(weights_all[k] * blend_val_preds[k] for k in weights_all))
+        auc_without = roc_auc_score(y_val, sum(weights_without[k] * without_lr[k] for k in weights_without))
+        # Prefer the simpler tree-only blend on a tie; retain LogReg only when it
+        # demonstrates a measurable validation gain.
+        optimal_weights = weights_all if auc_all > auc_without + 1e-5 else weights_without
+    else:
+        optimal_weights = optimize_blending_weights(blend_val_preds, y_val, seed=seed)
     print("   Optimal Weights:", {k: round(v, 4) for k, v in optimal_weights.items()})
 
     # Compute Ensemble predictions on test set
@@ -240,8 +322,8 @@ def train_ensemble_pipeline(
     test_ensemble_pred = np.zeros(len(y_test))
 
     for name, w in optimal_weights.items():
-        val_ensemble_pred += w * val_preds[name]
-        test_ensemble_pred += w * test_preds[name]
+        val_ensemble_pred += w * blend_val_preds[name]
+        test_ensemble_pred += w * blend_test_preds[name]
 
     # Fit Platt Calibrator on Ensemble Validation Predictions
     calibrator = PlattCalibrator().fit(val_ensemble_pred, y_val)
@@ -254,6 +336,10 @@ def train_ensemble_pipeline(
         "models": models,
         "linear_preprocessor": linear_prep,
         "tree_preprocessor": tree_prep,
+        "catboost_numeric_cols": num_cols,
+        "catboost_categorical_cols": cat_cols,
+        "catboost_numeric_fill": x_train_raw[num_cols].median().to_dict(),
+        "use_rank_blending": use_rank_blending,
         "optimal_weights": optimal_weights,
         "calibrator": calibrator,
         "test_metrics": test_metrics,
@@ -263,5 +349,6 @@ def train_ensemble_pipeline(
         "test_preds": test_preds,
         "test_ensemble_pred": test_ensemble_pred,
         "test_ensemble_calibrated": test_ensemble_calibrated,
+        "y_val": y_val,
         "y_test": y_test,
     }

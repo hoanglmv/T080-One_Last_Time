@@ -1,99 +1,121 @@
-"""Generate Kaggle submission file using Multi-Model Blending Ensemble."""
+"""Generate a Home Credit Kaggle submission from an ensemble artifact."""
 
-import sys
+from __future__ import annotations
+
+import argparse
 from pathlib import Path
+import sys
+import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import time
-import joblib
-import numpy as np
-import pandas as pd
+import joblib  # noqa: E402
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+
+from src.credit_scoring.ensemble_pipeline import (  # noqa: E402
+    _prepare_catboost_frame,
+    rank_averaging_transform,
+)
+from src.credit_scoring.features import engineer_application_features  # noqa: E402
 
 
-def main():
-    print("⏳ Đang khởi tạo quá trình tạo file submission Ensemble cho Kaggle...")
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Generate Home Credit ensemble submission")
+    parser.add_argument(
+        "--model-path",
+        type=Path,
+        default=Path("artifacts/models/ensemble3_model.joblib"),
+    )
+    parser.add_argument(
+        "--test-path",
+        type=Path,
+        default=Path("data/raw/home-credit-default-risk/application_test.csv"),
+    )
+    parser.add_argument(
+        "--output-path",
+        type=Path,
+        default=Path("artifacts/submission_ensemble.csv"),
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
     start_time = time.time()
 
-    model_path = Path("artifacts/models/ensemble_model.joblib")
-    test_path = Path("data/raw/home-credit-default-risk/application_test.csv")
-    output_path = Path("artifacts/submission_ensemble.csv")
+    # Fallback to ensemble_model.joblib if default ensemble3_model.joblib does not exist yet
+    model_path = args.model_path
+    if not model_path.is_file() and Path("artifacts/models/ensemble_model.joblib").is_file():
+        model_path = Path("artifacts/models/ensemble_model.joblib")
 
-    if not model_path.exists():
-        print(f"⚠️ Chưa thấy tệp {model_path}. Vui lòng chạy 'uv run python scripts/train_ensemble.py' trước!")
-        return
+    if not model_path.is_file():
+        raise FileNotFoundError(f"Không tìm thấy ensemble artifact: {model_path}")
+    if not args.test_path.is_file():
+        raise FileNotFoundError(f"Không tìm thấy application test: {args.test_path}")
 
-    if not test_path.exists():
-        raise FileNotFoundError(f"Không tìm thấy tập dữ liệu test tại {test_path}")
+    artifact = joblib.load(model_path)
+    models = artifact["models"]
+    weights = artifact["optimal_weights"]
+    feature_cols = artifact["feature_cols"]
 
-    print(f"📦 Loading Ensemble artifact từ {model_path}...")
-    res = joblib.load(model_path)
-    models = res["models"]
-    lin_prep = res["linear_preprocessor"]
-    tree_prep = res["tree_preprocessor"]
-    weights = res["optimal_weights"]
-    calibrator = res["calibrator"]
-    feature_cols = res["feature_cols"]
+    test_df = pd.read_csv(args.test_path)
+    x_test_raw = engineer_application_features(test_df)
+    for column in feature_cols:
+        if column not in x_test_raw:
+            x_test_raw[column] = np.nan
+    x_test_raw = x_test_raw[feature_cols].copy()
 
-    print(f"📄 Đang đọc dữ liệu application_test.csv ({test_path})...")
-    test_df = pd.read_csv(test_path)
-    num_rows = len(test_df)
-    print(f"   Tổng số hồ sơ test: {num_rows:,} bản ghi.")
+    component_predictions: dict[str, np.ndarray] = {}
+    weighted_names = set(weights)
+    if "LogisticRegression" in weighted_names:
+        transformed = artifact["linear_preprocessor"].transform(x_test_raw)
+        component_predictions["LogisticRegression"] = models["LogisticRegression"].predict_proba(
+            transformed
+        )[:, 1]
 
-    # Prepare features
-    X_test_raw = test_df.copy()
-    for col in feature_cols:
-        if col not in X_test_raw:
-            X_test_raw[col] = np.nan
-    X_test_raw = X_test_raw[feature_cols].copy()
+    tree_names = weighted_names & {"LightGBM", "XGBoost"}
+    if tree_names:
+        transformed = artifact["tree_preprocessor"].transform(x_test_raw)
+        for name in sorted(tree_names):
+            component_predictions[name] = models[name].predict_proba(transformed)[:, 1]
 
-    # Normalize numeric and categorical columns
-    for col in X_test_raw.columns:
-        if pd.api.types.is_numeric_dtype(X_test_raw[col]):
-            X_test_raw[col] = pd.to_numeric(X_test_raw[col], errors="coerce")
+    if "CatBoost" in weighted_names:
+        if "catboost_numeric_cols" in artifact:
+            (catboost_frame,) = _prepare_catboost_frame(
+                x_test_raw,
+                numeric_cols=artifact["catboost_numeric_cols"],
+                categorical_cols=artifact["catboost_categorical_cols"],
+                numeric_fill=artifact["catboost_numeric_fill"],
+            )
+            component_predictions["CatBoost"] = models["CatBoost"].predict_proba(catboost_frame)[:, 1]
         else:
-            X_test_raw[col] = X_test_raw[col].map(lambda v: str(v) if pd.notna(v) else np.nan)
+            transformed = artifact["tree_preprocessor"].transform(x_test_raw)
+            component_predictions["CatBoost"] = models["CatBoost"].predict_proba(transformed)[:, 1]
 
-    print("⚡ Preprocessing test feature matrices...")
-    X_test_lin = lin_prep.transform(X_test_raw)
-    X_test_tree = tree_prep.transform(X_test_raw)
+    if set(component_predictions) != weighted_names:
+        missing = sorted(weighted_names - set(component_predictions))
+        raise ValueError(f"Không hỗ trợ prediction cho models: {missing}")
+    if artifact.get("use_rank_blending", False):
+        component_predictions = rank_averaging_transform(component_predictions)
 
-    print("🤖 Đang dự đoán xác suất từ 4 mô hình thành phần...")
-    p_logreg = models["LogisticRegression"].predict_proba(X_test_lin)[:, 1]
-    p_lgbm = models["LightGBM"].predict_proba(X_test_tree)[:, 1]
-    p_xgb = models["XGBoost"].predict_proba(X_test_tree)[:, 1]
-    p_cat = models["CatBoost"].predict_proba(X_test_tree)[:, 1]
+    raw_probability = sum(weights[name] * component_predictions[name] for name in weights)
+    probability = artifact["calibrator"].predict(raw_probability)
+    submission = pd.DataFrame({"SK_ID_CURR": test_df["SK_ID_CURR"], "TARGET": probability})
 
-    # Weighted Blending
-    print(f"🎯 Kết hợp trọng số Blending: { {k: round(v, 4) for k, v in weights.items()} }...")
-    p_ensemble_raw = (
-        weights.get("LogisticRegression", 0.0) * p_logreg +
-        weights.get("LightGBM", 0.0) * p_lgbm +
-        weights.get("XGBoost", 0.0) * p_xgb +
-        weights.get("CatBoost", 0.0) * p_cat
-    )
+    if submission["SK_ID_CURR"].duplicated().any():
+        raise ValueError("Submission chứa SK_ID_CURR trùng lặp")
+    if submission["TARGET"].isna().any() or not submission["TARGET"].between(0.0, 1.0).all():
+        raise ValueError("TARGET phải là xác suất hữu hạn trong [0, 1]")
 
-    # Calibration
-    p_ensemble_calibrated = calibrator.predict(p_ensemble_raw)
-
-    # Export Kaggle Submission
-    submission = pd.DataFrame({
-        "SK_ID_CURR": test_df["SK_ID_CURR"],
-        "TARGET": p_ensemble_calibrated
-    })
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    submission.to_csv(output_path, index=False)
-
-    elapsed = time.time() - start_time
-    print(f"\n================================================================================")
-    print(f"✅ ĐÃ XUẤT TỆP ENSEMBLE SUBMISSION THÀNH CÔNG!")
-    print(f"📌 Đường dẫn tệp: {output_path.resolve()}")
-    print(f"📊 Kích thước tệp: {output_path.stat().st_size / (1024*1024):.2f} MB")
-    print(f"⏱️ Tổng thời gian xử lý: {elapsed:.2f} giây")
-    print(f"👀 5 bản ghi đầu tiên:")
-    print(submission.head())
-    print("================================================================================")
+    args.output_path.parent.mkdir(parents=True, exist_ok=True)
+    submission.to_csv(args.output_path, index=False)
+    print(f"Models: {list(weights)}")
+    print(f"Weights: { {name: round(value, 4) for name, value in weights.items()} }")
+    print(f"Rows: {len(submission):,}")
+    print(f"TARGET range: [{submission['TARGET'].min():.6f}, {submission['TARGET'].max():.6f}]")
+    print(f"Saved: {args.output_path.resolve()}")
+    print(f"Elapsed: {time.time() - start_time:.2f}s")
 
 
 if __name__ == "__main__":

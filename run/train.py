@@ -20,11 +20,12 @@ import numpy as np  # noqa: E402
 
 from src.credit_scoring.ensemble_pipeline import (  # noqa: E402
     optimize_blending_weights,
+    rank_averaging_transform,
     train_ensemble_pipeline,
 )
-from src.credit_scoring.features import TARGET_COLUMN, build_home_credit_features  # noqa: E402
 from src.credit_scoring.metrics import credit_metrics  # noqa: E402
-from src.credit_scoring.training import make_split, train_credit_model  # noqa: E402
+from src.credit_scoring.model import PlattCalibrator  # noqa: E402
+from src.credit_scoring.training import train_credit_model  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -118,25 +119,21 @@ def main() -> None:
             # Keep only LightGBM, XGBoost, CatBoost
             selected_names = ["LightGBM", "XGBoost", "CatBoost"]
             filtered_models = {k: v for k, v in all_models.items() if k in selected_names}
-            filtered_val_preds = {k: v for k, v in val_preds.items() if k in selected_names}
-            filtered_test_preds = {k: v for k, v in test_preds.items() if k in selected_names}
+            filtered_val_preds = rank_averaging_transform({k: v for k, v in val_preds.items() if k in selected_names})
+            filtered_test_preds = rank_averaging_transform({k: v for k, v in test_preds.items() if k in selected_names})
 
-            # Recalculate blending weights for 3 models on validation split
-            frame = build_home_credit_features(
-                args.data_dir, feature_set=args.feature_set, sample_size=args.sample_size
-            )
-            split = make_split(frame, seed=args.seed)
-            val_df = frame.iloc[split.validation]
-            y_val_target = val_df[TARGET_COLUMN].to_numpy(dtype=int)
-
-            weights = optimize_blending_weights(filtered_val_preds, y_val_target)
+            weights = optimize_blending_weights(filtered_val_preds, res["y_val"], seed=args.seed)
 
             # Compute ensemble prediction on test set
+            val_ensemble_pred = np.zeros(len(res["y_val"]))
             test_ensemble_pred = np.zeros(len(y_test_true))
             for name, w in weights.items():
+                val_ensemble_pred += w * filtered_val_preds[name]
                 test_ensemble_pred += w * filtered_test_preds[name]
 
-            test_metric = credit_metrics(y_test_true, test_ensemble_pred)
+            calibrator = PlattCalibrator().fit(val_ensemble_pred, res["y_val"])
+            test_ensemble_calibrated = calibrator.predict(test_ensemble_pred)
+            test_metric = credit_metrics(y_test_true, test_ensemble_calibrated)
 
             artifact_data = {
                 "model_type": "ensemble3",
@@ -144,8 +141,12 @@ def main() -> None:
                 "optimal_weights": weights,
                 "linear_preprocessor": res["linear_preprocessor"],
                 "tree_preprocessor": res["tree_preprocessor"],
-                "calibrator": res["calibrator"],
+                "calibrator": calibrator,
                 "feature_cols": res["feature_cols"],
+                "catboost_numeric_cols": res["catboost_numeric_cols"],
+                "catboost_categorical_cols": res["catboost_categorical_cols"],
+                "catboost_numeric_fill": res["catboost_numeric_fill"],
+                "use_rank_blending": True,
                 "test_metrics": test_metric,
             }
             output_file = args.output_dir / "ensemble3_model.joblib"
@@ -158,6 +159,10 @@ def main() -> None:
                 "tree_preprocessor": res["tree_preprocessor"],
                 "calibrator": res["calibrator"],
                 "feature_cols": res["feature_cols"],
+                "catboost_numeric_cols": res["catboost_numeric_cols"],
+                "catboost_categorical_cols": res["catboost_categorical_cols"],
+                "catboost_numeric_fill": res["catboost_numeric_fill"],
+                "use_rank_blending": res["use_rank_blending"],
                 "test_metrics": res["test_metrics"]["Ensemble_Calibrated"],
             }
             output_file = args.output_dir / "ensemble4_model.joblib"
@@ -217,6 +222,15 @@ def main() -> None:
                 "feature_cols": res["feature_cols"],
                 "test_metrics": metrics,
             }
+            if args.model == "catboost":
+                single_artifact.update(
+                    {
+                        "preprocessor": None,
+                        "catboost_numeric_cols": res["catboost_numeric_cols"],
+                        "catboost_categorical_cols": res["catboost_categorical_cols"],
+                        "catboost_numeric_fill": res["catboost_numeric_fill"],
+                    }
+                )
             output_file = args.output_dir / f"{args.model}_model.joblib"
             joblib.dump(single_artifact, output_file, compress=3)
 
