@@ -109,6 +109,13 @@ def train_ensemble_pipeline(
     feature_set: str = "serving",
     sample_size: int | None = None,
     seed: int = 42,
+    n_estimators: int | None = None,
+    learning_rate: float | None = None,
+    max_depth: int | None = None,
+    num_leaves: int | None = None,
+    subsample: float | None = None,
+    colsample_bytree: float | None = None,
+    c_reg: float | None = None,
 ) -> dict[str, Any]:
     data_path = Path(data_dir)
     print("⏳ Building Home Credit feature set...")
@@ -150,8 +157,25 @@ def train_ensemble_pipeline(
     test_preds: dict[str, np.ndarray] = {}
     test_metrics: dict[str, dict[str, float]] = {}
 
+    # Defaults
+    lr_lgbm = learning_rate if learning_rate is not None else 0.03
+    lr_xgb = learning_rate if learning_rate is not None else 0.03
+    lr_cb = learning_rate if learning_rate is not None else 0.04
+
+    n_est_lgbm = n_estimators if n_estimators is not None else 300
+    n_est_xgb = n_estimators if n_estimators is not None else 250
+    n_est_cb = n_estimators if n_estimators is not None else 300
+
+    depth_xgb = max_depth if max_depth is not None else 5
+    depth_cb = max_depth if max_depth is not None else 6
+    leaves_lgbm = num_leaves if num_leaves is not None else 31
+
+    sub_sample = subsample if subsample is not None else 0.8
+    col_sample = colsample_bytree if colsample_bytree is not None else 0.8
+    c_val = c_reg if c_reg is not None else 0.1
+
     print("🤖 [1/4] Training Baseline Logistic Regression...")
-    logreg = LogisticRegression(C=0.1, max_iter=500, random_state=seed)
+    logreg = LogisticRegression(C=c_val, max_iter=500, random_state=seed)
     logreg.fit(x_train_lin, y_train)
     models["LogisticRegression"] = logreg
     val_preds["LogisticRegression"] = logreg.predict_proba(x_val_lin)[:, 1]
@@ -160,11 +184,11 @@ def train_ensemble_pipeline(
 
     print("🤖 [2/4] Training LightGBM Champion...")
     lgbm = lgb.LGBMClassifier(
-        n_estimators=300,
-        learning_rate=0.03,
-        num_leaves=31,
-        subsample=0.8,
-        colsample_bytree=0.8,
+        n_estimators=n_est_lgbm,
+        learning_rate=lr_lgbm,
+        num_leaves=leaves_lgbm,
+        subsample=sub_sample,
+        colsample_bytree=col_sample,
         random_state=seed,
         verbosity=-1,
         n_jobs=-1,
@@ -177,11 +201,11 @@ def train_ensemble_pipeline(
 
     print("🤖 [3/4] Training XGBoost...")
     xgboost_model = xgb.XGBClassifier(
-        n_estimators=250,
-        learning_rate=0.03,
-        max_depth=5,
-        subsample=0.8,
-        colsample_bytree=0.8,
+        n_estimators=n_est_xgb,
+        learning_rate=lr_xgb,
+        max_depth=depth_xgb,
+        subsample=sub_sample,
+        colsample_bytree=col_sample,
         random_state=seed,
         n_jobs=-1,
         eval_metric="auc",
@@ -194,9 +218,9 @@ def train_ensemble_pipeline(
 
     print("🤖 [4/4] Training CatBoost...")
     catboost_model = cb.CatBoostClassifier(
-        iterations=300,
-        learning_rate=0.04,
-        depth=6,
+        iterations=n_est_cb,
+        learning_rate=lr_cb,
+        depth=depth_cb,
         random_seed=seed,
         verbose=0,
         thread_count=-1,

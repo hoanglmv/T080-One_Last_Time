@@ -67,6 +67,16 @@ def parse_args() -> argparse.Namespace:
         default=Path("artifacts/models"),
         help="Directory to save model artifacts and reports.",
     )
+    # Hyperparameters (Optional - defaults used if not set)
+    parser.add_argument("--n-estimators", type=int, default=None, help="Number of boosting trees/iterations.")
+    parser.add_argument("--learning-rate", type=float, default=None, help="Learning rate.")
+    parser.add_argument("--max-depth", type=int, default=None, help="Maximum tree depth for XGBoost/CatBoost.")
+    parser.add_argument("--num-leaves", type=int, default=None, help="Number of leaves for LightGBM.")
+    parser.add_argument("--subsample", type=float, default=None, help="Row subsample ratio.")
+    parser.add_argument("--colsample-bytree", type=float, default=None, help="Column subsample ratio.")
+    parser.add_argument(
+        "--c-reg", type=float, default=None, help="Inverse regularization strength for Logistic Regression."
+    )
     return parser.parse_args()
 
 
@@ -77,6 +87,10 @@ def main() -> None:
     print("================================================================================")
     print(f"🚀 RUNNING TRAINING PIPELINE FOR MODEL: [{args.model.upper()}]")
     print(f"📌 Feature Set: {args.feature_set} | Seed: {args.seed} | Sample Size: {args.sample_size}")
+    if args.learning_rate is not None or args.n_estimators is not None:
+        print(
+            f"⚙️ Custom Hyperparams: n_estimators={args.n_estimators}, learning_rate={args.learning_rate}, max_depth={args.max_depth}, num_leaves={args.num_leaves}"
+        )
     print("================================================================================")
 
     if args.model in ("ensemble3", "ensemble4"):
@@ -86,6 +100,13 @@ def main() -> None:
             feature_set=args.feature_set,
             sample_size=args.sample_size,
             seed=args.seed,
+            n_estimators=args.n_estimators,
+            learning_rate=args.learning_rate,
+            max_depth=args.max_depth,
+            num_leaves=args.num_leaves,
+            subsample=args.subsample,
+            colsample_bytree=args.colsample_bytree,
+            c_reg=args.c_reg,
         )
 
         all_models = res["models"]
@@ -170,6 +191,13 @@ def main() -> None:
                 feature_set=args.feature_set,
                 sample_size=args.sample_size,
                 seed=args.seed,
+                n_estimators=args.n_estimators,
+                learning_rate=args.learning_rate,
+                max_depth=args.max_depth,
+                num_leaves=args.num_leaves,
+                subsample=args.subsample,
+                colsample_bytree=args.colsample_bytree,
+                c_reg=args.c_reg,
             )
             model_key_map = {
                 "xgboost": "XGBoost",

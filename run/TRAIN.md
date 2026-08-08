@@ -25,36 +25,43 @@ uv run python run/train.py --model ensemble4
 
 ## 🛠️ 2. Các Cờ Lệnh Tùy Chọn Trong `run/train.py`
 
-| Cờ Lệnh (Argument) | Tùy Chọn (Choices) | Mặc Định | Mô Tả |
+| Cờ Lệnh (Argument) | Tùy Chọn / Kiểu | Mặc Định | Mô Tả |
 | :--- | :--- | :---: | :--- |
 | `--model` | `lightgbm`, `xgboost`, `catboost`, `logistic_regression`, `ensemble3`, `ensemble4` | `lightgbm` | Chọn kiến trúc mô hình đơn lẻ hoặc mô hình Ensemble. |
 | `--feature-set` | `serving`, `full` | `serving` | `serving`: Bộ 22 biến core (Tối ưu tốc độ API <50ms).<br>`full`: Bộ biến mở rộng đầy đủ. |
-| `--sample-size` | `NUMBER` (VD: `50000`) | `None` | Giới hạn số bản ghi train để thử nghiệm nhanh. |
+| `--sample-size` | `INTEGER` (VD: `50000`) | `None` | Giới hạn số bản ghi train để thử nghiệm nhanh. |
 | `--seed` | `INTEGER` | `42` | Random seed đảm bảo tính tái lập (Reproducibility). |
 | `--output-dir` | `PATH` | `artifacts/models` | Thư mục lưu tệp mô hình `.joblib`. |
+| `--n-estimators` | `INTEGER` | `300 / 250` | Số lượng cây / vòng lặp boosting. |
+| `--learning-rate` | `FLOAT` (VD: `0.05`) | `0.03 / 0.04` | Tốc độ học (Learning rate). |
+| `--max-depth` | `INTEGER` (VD: `8`) | `5 / 6` | Độ sâu tối đa của cây (XGBoost / CatBoost). |
+| `--num-leaves` | `INTEGER` (VD: `63`) | `31` | Số lá tối đa của cây (LightGBM). |
+| `--subsample` | `FLOAT` (VD: `0.85`) | `0.8` | Tỷ lệ lấy mẫu hàng (Row subsample ratio). |
+| `--colsample-bytree` | `FLOAT` (VD: `0.85`) | `0.8` | Tỷ lệ lấy mẫu cột đặc trưng (Column subsample ratio). |
+| `--c-reg` | `FLOAT` (VD: `1.0`) | `0.1` | Hệ số nghịch đảo C phạt cho Logistic Regression. |
 
 ---
 
-## 💡 3. Các Ví Dụ Chạy Huấn Luyện Thực Tế
+## 💡 3. Các Ví Dụ Chạy Huấn Luyện Tùy Chỉnh Siêu Tham Số (Hyperparameter Customization)
 
-### Ví Dụ 1: Huấn luyện mô hình XGBoost đơn lẻ với bộ biến Full
+### Ví Dụ 1: Tùy chỉnh Learning Rate & Số lượng cây cho XGBoost
 ```bash
-uv run python run/train.py --model xgboost --feature-set full
+uv run python run/train.py --model xgboost --n-estimators 500 --learning-rate 0.02 --max-depth 6
 ```
 
-### Ví Dụ 2: Huấn luyện mô hình CatBoost đơn lẻ
+### Ví Dụ 2: Tùy chỉnh Num Leaves & Subsample cho LightGBM
 ```bash
-uv run python run/train.py --model catboost
+uv run python run/train.py --model lightgbm --num-leaves 63 --subsample 0.85 --learning-rate 0.05
 ```
 
-### Ví Dụ 3: Huấn luyện Baseline Logistic Regression
+### Ví Dụ 3: Huấn luyện Ensemble 4 mô hình với Learning Rate tùy chỉnh
 ```bash
-uv run python run/train.py --model logistic_regression
+uv run python run/train.py --model ensemble4 --n-estimators 400 --learning-rate 0.025
 ```
 
-### Ví Dụ 4: Huấn luyện Ensemble 3 mô hình trên 50,000 bản ghi mẫu
+### Ví Dụ 4: Tùy chỉnh hệ số phạt C cho Logistic Regression
 ```bash
-uv run python run/train.py --model ensemble3 --sample-size 50000
+uv run python run/train.py --model logistic_regression --c-reg 1.0
 ```
 
 ---
