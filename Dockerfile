@@ -3,18 +3,27 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Install system libraries needed for LightGBM/XGBoost OpenMP
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Astral uv binaries
 COPY --from=uv /uv /uvx /bin/
+
+# Copy dependency specifications first for optimal layer caching
 COPY pyproject.toml uv.lock .python-version ./
 RUN uv sync --frozen --no-dev --no-install-project
 
-# Security: run as non-root user
+# Security: non-root user
 RUN useradd -m appuser
 
-# Copy application code
+# Copy source code, web UI and pre-trained artifacts
 COPY . .
 
-# Create data directory with correct ownership
-RUN mkdir -p /app/data && chown -R appuser:appuser /app
+# Ensure appuser owns app directory
+RUN mkdir -p /app/data /app/artifacts/models && chown -R appuser:appuser /app
 
 USER appuser
 

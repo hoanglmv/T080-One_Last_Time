@@ -305,9 +305,10 @@
     <!-- Quick Preset Selection Toolbar -->
     <div class="preset-toolbar">
       <span class="preset-label">Hồ sơ mẫu 1-Click:</span>
-      <button type="button" class="preset-btn" onclick="loadPresetProfile('good')">👨‍💼 Hồ sơ 1: Điểm tốt (An toàn)</button>
+      <button type="button" class="preset-btn" onclick="loadPresetProfile('good')">👨‍💼 Hồ sơ 1: Điểm tốt (Hybrid Model)</button>
       <button type="button" class="preset-btn" onclick="loadPresetProfile('high_leverage')">⚠️ Hồ sơ 2: Đòn bẩy cao OOD (Sanity Guard)</button>
-      <button type="button" class="preset-btn" onclick="loadPresetProfile('thin_file')">📱 Hồ sơ 3: Thin-file (Dữ liệu ACS)</button>
+      <button type="button" class="preset-btn" onclick="loadPresetProfile('thin_file')">📱 Hồ sơ 3: Thin-file (Hybrid ACS)</button>
+      <button type="button" class="preset-btn" onclick="loadPresetProfile('alternative_only')" style="border-color: #f59e0b; color: #d97706; background: #fef3c7;">⚡ Hồ sơ 4: Tự động kích hoạt Alternative-Only Model (Chỉ Dữ Liệu Thay Thế)</button>
     </div>
   </header>
 
@@ -491,6 +492,19 @@
           <h2>Điểm số & Giải thích</h2>
           <span id="model-version" class="tag"></span>
         </div>
+        <!-- Auto-Detected Model Routing Banner -->
+        <div id="routing-banner" style="margin-bottom: 20px; padding: 14px 16px; border-radius: 16px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(16, 185, 129, 0.06)); border: 1px solid rgba(99, 102, 241, 0.25);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.90rem; color: var(--indigo-600);">
+              <span id="routing-icon">🤖</span>
+              <span id="routing-model-title">Mô hình Tự động Kích hoạt</span>
+            </div>
+            <span id="routing-badge" class="tag" style="background: var(--indigo-50); color: var(--indigo-600); border-color: rgba(99,102,241,0.3); font-weight: 700;">—</span>
+          </div>
+          <div id="routing-reason" style="margin-top: 8px; font-size: 0.82rem; color: var(--slate-700); line-height: 1.45;">
+            —
+          </div>
+        </div>
 
         <!-- Animated Speedometer Gauge -->
         <div class="gauge-wrapper">
@@ -621,6 +635,57 @@
         </section>
       </div>
     </aside>
+
+    <!-- Third Column: Recommendation & Human Review -->
+    <aside class="panel review-panel" aria-live="polite">
+      <div id="review-empty" class="empty">
+        <div>
+          <div class="empty-icon">🧑‍💼</div>
+          <strong>Đề xuất & kiểm định nghiệp vụ</strong><br>
+          <span style="font-size:.86rem">Kết quả hỗ trợ và biểu mẫu quyết định sẽ xuất hiện sau khi chấm điểm.</span>
+        </div>
+      </div>
+      <div id="review-workspace" hidden>
+        <div class="column-kicker">Cột 3 · AI hỗ trợ & Human Review</div>
+        <div class="panel-title">
+          <h2>Đề xuất xử lý</h2>
+          <span id="proposal-source" class="tag">Policy Guard</span>
+        </div>
+        <p class="review-intro">Đề xuất chỉ hỗ trợ rà soát. Quyết định cuối cùng thuộc về nhân viên ngân hàng và chính sách tín dụng hiện hành.</p>
+
+        <div id="decision-card" class="decision-card">
+          <div id="decision-icon" class="decision-icon">⚡</div>
+          <div class="decision-text">
+            <div id="decision-title" class="decision-title">—</div>
+            <div id="decision-sub" class="decision-sub">—</div>
+          </div>
+        </div>
+        <div id="review-recommendation" class="explanation"></div>
+
+        <div class="metric-grid">
+          <div class="metric-card"><div class="metric-label">DTI hàng tháng</div><div id="dti-value" class="metric-value">—</div></div>
+          <div class="metric-card"><div class="metric-label">Đòn bẩy khoản vay</div><div id="leverage-value" class="metric-value">—</div></div>
+        </div>
+        <div id="review-flags" class="flag-list"></div>
+
+        <section class="underwriter-card">
+          <h3 class="underwriter-title">Kiểm định của nhân viên</h3>
+          <p class="underwriter-copy">Ghi nhận căn cứ và quyết định độc lập với khuyến nghị của model.</p>
+          <label><span>Ghi chú thẩm định</span><textarea id="underwriter-notes" placeholder="Tài liệu đã kiểm tra, nhận xét và căn cứ quyết định..."></textarea></label>
+          <div class="decision-options" role="radiogroup" aria-label="Quyết định cuối cùng">
+            <label class="decision-option"><input type="radio" name="final-decision" value="approved"> Phê duyệt</label>
+            <label class="decision-option"><input type="radio" name="final-decision" value="conditional"> Có điều kiện</label>
+            <label class="decision-option"><input type="radio" name="final-decision" value="rejected"> Từ chối</label>
+          </div>
+          <div class="review-fields">
+            <label id="approved-amount-wrap"><span>Hạn mức duyệt cuối cùng <em class="unit-hint">(VNĐ)</em></span><input id="final-approved-amount" type="text" placeholder="Ví dụ: 150.000.000"></label>
+            <label id="reject-reason-wrap" hidden><span>Lý do từ chối</span><select id="reject-reason"><option value="">— Chọn lý do —</option><option value="income">Thu nhập không đủ khả năng trả nợ</option><option value="leverage">Đòn bẩy tài chính vượt ngưỡng</option><option value="delinquency">Lịch sử quá hạn thanh toán</option><option value="inconsistent">Dữ liệu bất thường hoặc mâu thuẫn</option><option value="documents">Không đủ hồ sơ chứng minh</option><option value="policy">Không đáp ứng chính sách tín dụng</option></select></label>
+          </div>
+          <button id="save-review" type="button" class="btn-magic review-save">Lưu biên bản thẩm định</button>
+          <span id="save-review-status" class="save-status"></span>
+        </section>
+      </div>
+    </aside>
   </main>
 
   <!-- Floating AI Chatbot Bubble Button -->
@@ -693,16 +758,22 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
         document.querySelector('#input-EXT_SOURCE_1').value = '0.30';
         document.querySelector('#input-EXT_SOURCE_2').value = '0.25';
         document.querySelector('#input-EXT_SOURCE_3').value = '0.20';
-      } else if (type === 'thin_file') {
-        document.querySelector('#input-AMT_INCOME_TOTAL').value = '150.000';
-        document.querySelector('#input-AMT_CREDIT').value = '300.000';
-        document.querySelector('#input-AMT_ANNUITY').value = '18.000';
-        document.querySelector('#input-AMT_GOODS_PRICE').value = '280.000';
-        document.querySelector('#input-AGE_YEARS_INPUT').value = '29';
-        document.querySelector('#input-EMPLOYMENT_YEARS_INPUT').value = '4';
-        document.querySelector('#input-EXT_SOURCE_1').value = '0.50';
-        document.querySelector('#input-EXT_SOURCE_2').value = '0.58';
-        document.querySelector('#input-EXT_SOURCE_3').value = '0.62';
+      } else if (type === 'alternative_only') {
+        // Tự động để trống TOÀN BỘ dữ liệu bureau / nợ vay truyền thống
+        document.querySelector('#input-EXT_SOURCE_1').value = '';
+        document.querySelector('#input-EXT_SOURCE_2').value = '';
+        document.querySelector('#input-EXT_SOURCE_3').value = '';
+        document.querySelector('#input-AMT_CREDIT').value = '';
+        document.querySelector('#input-AMT_ANNUITY').value = '';
+        document.querySelector('#input-AMT_GOODS_PRICE').value = '';
+
+        // Điền các trường dữ liệu thay thế (Nhân khẩu học, Hành vi di động, Cư trú)
+        document.querySelector('#input-AMT_INCOME_TOTAL').value = '15.000.000';
+        document.querySelector('#input-AGE_YEARS_INPUT').value = '27';
+        document.querySelector('#input-EMPLOYMENT_YEARS_INPUT').value = '3';
+        document.querySelector('#input-DAYS_LAST_PHONE_CHANGE').value = '450';
+        document.querySelector('#input-NAME_HOUSING_TYPE').value = 'House / apartment';
+        document.querySelector('#input-NAME_EDUCATION_TYPE').value = 'Higher education';
       }
 
       currencyFields.forEach(fieldId => updateCurrencyField(fieldId));
@@ -916,8 +987,25 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
       document.querySelector("#result").hidden = false;
       document.querySelector("#review-empty-state").hidden = true;
       document.querySelector("#review-workspace").hidden = false;
-      document.querySelector("#model-version").textContent = result.model_version.split("-").slice(-2).join("-");
-      
+      const mvElem = document.querySelector("#model-version");
+      if (mvElem && result.model_version) {
+        mvElem.textContent = result.model_version.split("-").slice(-2).join("-");
+      }
+
+      // Auto-Detected Model Banner Updating
+      if (result.auto_detected_model) {
+        const isAlt = result.auto_detected_model.includes("Alternative-Only");
+        document.querySelector("#routing-model-title").textContent = result.auto_detected_model;
+        document.querySelector("#routing-reason").textContent = result.model_routing_reason;
+        document.querySelector("#routing-icon").textContent = isAlt ? "📱" : "🏦";
+        
+        const badge = document.querySelector("#routing-badge");
+        badge.textContent = isAlt ? "⚡ Dữ liệu Thay thế (Thin-file Model)" : "🏦 Dữ liệu Truyền thống + Thay thế";
+        badge.style.background = isAlt ? "#fef3c7" : "#eef2ff";
+        badge.style.color = isAlt ? "#d97706" : "#4f46e5";
+        badge.style.borderColor = isAlt ? "rgba(245,158,11,0.4)" : "rgba(99,102,241,0.3)";
+      }
+
       const score = result.poc_score;
       document.querySelector("#score-value").textContent = score.toFixed(1);
       
@@ -948,7 +1036,7 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
       if (result.risk_band === 'low') {
         decIcon.textContent = '⚡';
         decTitle.textContent = 'Ưu tiên rà soát phê duyệt';
-        decSub.textContent = 'Rủi ro model thấp; tiếp tục kiểm tra hồ sơ và chính sách hạn mức.';
+        decSub.textContent = 'Rủi ro model thấp; tiếp tục xác minh hồ sơ và chính sách hạn mức.';
       } else if (result.risk_band === 'moderate') {
         decIcon.textContent = '🔍';
         decTitle.textContent = 'Thẩm định bổ sung';
@@ -959,10 +1047,7 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
         decSub.textContent = result.data_quality.warnings.length ? result.data_quality.warnings.join('. ') : 'Rủi ro model cao; cần kiểm tra chéo trước mọi quyết định.';
       }
 
-      const proposalBox = document.querySelector("#llm-proposal");
-      const proposalSource = document.querySelector("#proposal-source");
-      proposalSource.textContent = result.llm_used ? "LLM + Policy Guard" : "Rule fallback + Policy Guard";
-      proposalBox.innerHTML = `<div class="badge-source ${result.llm_used ? 'llm' : 'fallback'}">${result.llm_used ? '🤖 Đề xuất hỗ trợ bởi LLM' : '🛡️ Đề xuất theo quy tắc dự phòng'}</div><div>${escapeHtml(buildReviewProposal(result))}</div>`;
+      renderReviewSupport(result);
 
       document.querySelector("#probability").textContent = `${(result.payment_difficulty_probability * 100).toFixed(2)}%`;
       renderFinancialInsights(result, currentUiSummary);
@@ -1007,51 +1092,42 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
       document.querySelector("#quality").textContent = `Độ đầy đủ trường bắt buộc: ${quality}%. ${result.disclaimer}${notes}`;
     }
 
-    function buildReviewProposal(result) {
-      const keyFactors = (result.top_factors || []).slice(0, 3).map(item => item.description).join(", ");
-      if (result.risk_band === "low") {
-        return `Hồ sơ có thể được ưu tiên trong hàng đợi thẩm định. Nhân viên cần xác minh chứng từ thu nhập, dư nợ hiện tại và các yếu tố chính: ${keyFactors}. Không tự động phê duyệt chỉ dựa trên điểm model.`;
-      }
-      if (result.risk_band === "moderate") {
-        return `Nên yêu cầu sao kê hoặc chứng từ nguồn thu, đối chiếu lịch sử quá hạn và cân nhắc điều chỉnh hạn mức. Các yếu tố cần kiểm tra: ${keyFactors}.`;
-      }
-      return `Nên chuyển hồ sơ sang thẩm định chuyên sâu, xác minh dữ liệu bất thường, nghĩa vụ nợ và khả năng trả nợ. Các yếu tố cần ưu tiên kiểm tra: ${keyFactors}. Quyết định từ chối phải dựa trên chính sách và bằng chứng đã xác minh.`;
+    function numericInput(id) {
+      const value = document.querySelector(id)?.value || "0";
+      return Number(String(value).replace(/\./g, "")) || 0;
     }
 
-    function renderFinancialInsights(result, summary) {
-      const safe = summary || {};
-      const income = Number(safe.income || 0);
-      const credit = Number(safe.credit || 0);
-      const annuity = Number(safe.annuity || 0);
+    function renderReviewSupport(result) {
+      const income = numericInput("#input-AMT_INCOME_TOTAL");
+      const credit = numericInput("#input-AMT_CREDIT");
+      const annuity = numericInput("#input-AMT_ANNUITY");
       const dti = income > 0 ? annuity / income : null;
       const leverage = income > 0 ? credit / income : null;
-
       document.querySelector("#dti-value").textContent = dti === null ? "Không xác định" : `${(dti * 100).toFixed(1)}%`;
       document.querySelector("#leverage-value").textContent = leverage === null ? "Không xác định" : `${leverage.toFixed(2)}×`;
-      document.querySelector("#bureau-loans").textContent = Number(safe.activeLoans || 0).toLocaleString("vi-VN");
-      document.querySelector("#bureau-late").textContent = Number(safe.latePayments12m || 0).toLocaleString("vi-VN");
-      document.querySelector("#bureau-debt").textContent = `${Number(safe.outstandingDebt || 0).toLocaleString("vi-VN")} VNĐ`;
+      document.querySelector("#proposal-source").textContent = result.llm_used ? "LLM + Policy Guard" : "Rule Fallback";
+
+      const factors = (result.top_factors || []).slice(0, 3).map(item => item.description).join(", ");
+      const recommendation = result.risk_band === "low"
+        ? `Ưu tiên xác minh chứng từ thu nhập và dư nợ. Kiểm tra các yếu tố chính: ${factors}. Không phê duyệt chỉ dựa trên điểm model.`
+        : result.risk_band === "moderate"
+          ? `Yêu cầu sao kê hoặc chứng từ nguồn thu, đối chiếu nghĩa vụ nợ và các yếu tố: ${factors}.`
+          : `Chuyển thẩm định chuyên sâu, xác minh dữ liệu bất thường và khả năng trả nợ. Ưu tiên kiểm tra: ${factors}.`;
+      document.querySelector("#review-recommendation").textContent = recommendation;
 
       const flags = [];
       if (income <= 0) flags.push("Không thể tính tỷ lệ vì thu nhập không hợp lệ.");
       if (leverage !== null && leverage > 25) flags.push("Khoản vay vượt quá 25 lần thu nhập.");
       if (dti !== null && dti > 1) flags.push("Nghĩa vụ trả hàng tháng vượt quá 100% thu nhập.");
-      if (Number(safe.latePayments12m || 0) > 0) flags.push(`Ghi nhận ${safe.latePayments12m} lần quá hạn trong 12 tháng.`);
-      if ((result.data_quality.warnings || []).some(item => /OOD|bất thường|mâu thuẫn/i.test(item))) {
-        flags.push("Dữ liệu có dấu hiệu bất thường hoặc ngoài phân phối huấn luyện (OOD).");
-      }
-
-      const flagBox = document.querySelector("#automatic-flags");
-      flagBox.innerHTML = flags.length
-        ? flags.map(item => `<div class="flag danger"><span>⚠️</span><span>${escapeHtml(item)}</span></div>`).join("")
-        : `<div class="flag safe"><span>✓</span><span>Chưa phát hiện cảnh báo theo các quy tắc giao diện hiện tại.</span></div>`;
+      (result.data_quality.warnings || []).forEach(item => flags.push(item));
+      document.querySelector("#review-flags").innerHTML = flags.length
+        ? flags.map(item => `<div class="flag-item danger">⚠ ${escapeHtml(item)}</div>`).join("")
+        : `<div class="flag-item">✓ Chưa phát hiện cảnh báo theo các quy tắc hiện tại.</div>`;
     }
 
-    const finalAmount = document.querySelector("#final-approved-amount");
-    finalAmount.addEventListener("input", () => {
-      const clean = finalAmount.value.replace(/\D/g, "");
-      finalAmount.value = formatNumberDots(clean);
-      document.querySelector("#words-FINAL_APPROVED_AMOUNT").textContent = readMoneyVietnamese(clean);
+    const finalAmountInput = document.querySelector("#final-approved-amount");
+    finalAmountInput.addEventListener("input", () => {
+      finalAmountInput.value = formatNumberDots(finalAmountInput.value);
     });
 
     document.querySelectorAll('input[name="final-decision"]').forEach(input => {
@@ -1059,44 +1135,25 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
         const rejected = input.value === "rejected";
         document.querySelector("#reject-reason-wrap").hidden = !rejected;
         document.querySelector("#approved-amount-wrap").hidden = rejected;
-        if (rejected) finalAmount.value = "";
-        else document.querySelector("#reject-reason").value = "";
       });
     });
 
     document.querySelector("#save-review").addEventListener("click", () => {
-      const decision = document.querySelector('input[name="final-decision"]:checked')?.value;
       const status = document.querySelector("#save-review-status");
-      if (!currentScoreResult) {
-        status.textContent = "Hãy chấm điểm hồ sơ trước.";
-        return;
-      }
-      if (!decision) {
-        status.textContent = "Vui lòng chọn quyết định.";
-        return;
-      }
-      const rejectReason = document.querySelector("#reject-reason").value;
-      const approvedAmount = Number(finalAmount.value.replace(/\D/g, "") || 0);
-      if (decision === "rejected" && !rejectReason) {
-        status.textContent = "Vui lòng chọn lý do từ chối.";
-        return;
-      }
-      if (decision !== "rejected" && approvedAmount <= 0) {
-        status.textContent = "Vui lòng nhập hạn mức duyệt.";
-        return;
-      }
-      const review = {
-        savedAt: new Date().toISOString(),
-        modelVersion: currentScoreResult.model_version,
-        score: currentScoreResult.poc_score,
-        riskBand: currentScoreResult.risk_band,
-        decision,
-        approvedAmount: decision === "rejected" ? null : approvedAmount,
-        rejectReason: decision === "rejected" ? rejectReason : null,
-        notes: document.querySelector("#underwriter-notes").value.trim(),
-        creditSummary: currentUiSummary
-      };
-      localStorage.setItem("acs-underwriter-review", JSON.stringify(review));
+      const decision = document.querySelector('input[name="final-decision"]:checked')?.value;
+      const reason = document.querySelector("#reject-reason").value;
+      const amount = numericInput("#final-approved-amount");
+      if (!currentScoreResult) return;
+      if (!decision) { status.textContent = "Vui lòng chọn quyết định cuối cùng."; return; }
+      if (decision === "rejected" && !reason) { status.textContent = "Vui lòng chọn lý do từ chối."; return; }
+      if (decision !== "rejected" && amount <= 0) { status.textContent = "Vui lòng nhập hạn mức được duyệt."; return; }
+      localStorage.setItem("acs-underwriter-review", JSON.stringify({
+        savedAt: new Date().toISOString(), modelVersion: currentScoreResult.model_version,
+        score: currentScoreResult.poc_score, riskBand: currentScoreResult.risk_band,
+        decision, approvedAmount: decision === "rejected" ? null : amount,
+        rejectReason: decision === "rejected" ? reason : null,
+        notes: document.querySelector("#underwriter-notes").value.trim()
+      }));
       status.textContent = `Đã lưu lúc ${new Date().toLocaleTimeString("vi-VN")}.`;
     });
 

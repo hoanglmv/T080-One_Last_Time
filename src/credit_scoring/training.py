@@ -141,6 +141,14 @@ def select_model_features(train: pd.DataFrame, *, feature_set: str) -> tuple[lis
             "DAYS_EMPLOYED_ANOMALY",
         ]
         candidates = [column for column in candidates if column in train and column not in excluded]
+    elif feature_set == "alternative_only":
+        from src.credit_scoring.features import ALTERNATIVE_ONLY_ENGINEERED_FEATURES, ALTERNATIVE_ONLY_RAW_FEATURES
+        candidates = [
+            *ALTERNATIVE_ONLY_RAW_FEATURES,
+            *ALTERNATIVE_ONLY_ENGINEERED_FEATURES,
+            "DAYS_EMPLOYED_ANOMALY",
+        ]
+        candidates = [column for column in candidates if column in train and column not in excluded]
     else:
         candidates = [column for column in train if column not in excluded and not column.startswith("SK_ID_")]
 
