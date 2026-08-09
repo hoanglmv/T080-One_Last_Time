@@ -88,7 +88,7 @@ mục dự án để công cụ đọc đúng cấu hình:
 | Công cụ | Cấu hình | Cơ chế |
 | --- | --- | --- |
 | Claude Code | `.claude/settings.json` | Prompt, tool call và kết thúc phiên |
-| OpenAI Codex CLI | `.codex/hooks.json` | Prompt và kết thúc lượt |
+| OpenAI Codex CLI/app | `.codex/hooks.json` | Prompt và kết thúc lượt |
 | Cursor | `.cursor/hooks.json` | Prompt và kết thúc lượt |
 | Gemini CLI | `.gemini/settings.json` | Trước agent, sau model và kết thúc phiên |
 | GitHub Copilot | `.github/hooks/hooks.json` | Prompt và kết thúc phiên |
@@ -97,9 +97,25 @@ mục dự án để công cụ đọc đúng cấu hình:
 Sau khi clone hoặc pull thay đổi cấu hình hook, hãy đóng và mở lại công cụ AI
 nếu hook chưa được nhận diện.
 
-## 5. Ghi log thủ công
+### Bước bắt buộc riêng cho Codex
 
-Với ChatGPT trên web hoặc công cụ không hỗ trợ hook, chạy chế độ tương tác:
+Codex yêu cầu người dùng xác nhận riêng từng command hook, kể cả khi project đã
+được đánh dấu là trusted. Sau khi mở lại Codex trong thư mục dự án:
+
+1. Chạy `/hooks`.
+2. Xác nhận Codex đã tìm thấy `.codex/hooks.json`.
+3. Chọn trust/enable cho `log-prompt` và `log-stop`.
+4. Gửi một prompt mới rồi kiểm tra `.ai-log/session.jsonl`.
+
+Codex lưu trust theo hash của hook. Vì vậy, nếu nội dung hook được cập nhật, bạn
+có thể phải mở `/hooks` và trust lại.
+
+## 5. Ghi log cho mọi AI không có hook
+
+Không thể tự động đọc transcript của mọi website AI vì trình duyệt và từng dịch
+vụ không cung cấp một hook chung cho repository. Với ChatGPT web, Claude.ai,
+Gemini web, Perplexity hoặc bất kỳ công cụ không hỗ trợ hook, chạy chế độ tương
+tác:
 
 ```bash
 bash scripts/_pyrun.sh scripts/log_manual.py
@@ -160,6 +176,9 @@ Log thật được gửi tự động ở lần `git push` tiếp theo. Không 
   lại ở lần push tiếp theo.
 - **Đã pull cấu hình mới nhưng hook không chạy:** chạy lại script ở bước 3 và
   khởi động lại AI tool.
+- **Codex không log:** chạy `/hooks`, trust/enable hai hook của project rồi gửi
+  một prompt mới. Nếu dùng Codex CLI trong WSL, chạy `codex --version` và cài
+  lại CLI nếu package native Linux đang bị thiếu.
 
 ## Checklist cho thành viên mới
 

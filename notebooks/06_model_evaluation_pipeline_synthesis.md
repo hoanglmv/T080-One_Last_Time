@@ -1,4 +1,4 @@
-# 📘 Notebook 07: Quy Trình Xử Lý Dữ Liệu, Pipeline Chuẩn & Tổng Kết Mô Hình Alternative Credit Scoring (ACS)
+# 📘 Notebook 06: Quy Trình Xử Lý Dữ Liệu, Pipeline Chuẩn & Tổng Kết Mô Hình Alternative Credit Scoring (ACS)
 
 ## 📌 Mục Tiêu & Tổng Quan Document
 
