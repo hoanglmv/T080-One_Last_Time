@@ -25,6 +25,20 @@ try:
 except ImportError:
     pass
 
+def _load_env_fallback():
+    env_path = Path(".env")
+    if env_path.exists():
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    k, v = k.strip(), v.strip()
+                    if k and k not in os.environ:
+                        os.environ[k] = v.strip("\"'")
+
+_load_env_fallback()
+
 SERVER_URL = os.environ.get("AI_LOG_SERVER", "")
 API_KEY = os.environ.get("AI_LOG_API_KEY", "")
 LOG_DIR = Path(os.environ.get("AI_LOG_DIR", ".ai-log"))

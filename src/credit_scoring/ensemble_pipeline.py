@@ -52,7 +52,7 @@ def build_preprocessors(
                 Pipeline(
                     [
                         ("imputer", SimpleImputer(strategy="most_frequent")),
-                        ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+                        ("ohe", OneHotEncoder(handle_unknown="ignore", min_frequency=10, sparse_output=True)),
                     ]
                 ),
                 categorical_cols,
@@ -69,7 +69,7 @@ def build_preprocessors(
                 Pipeline(
                     [
                         ("imputer", SimpleImputer(strategy="most_frequent")),
-                        ("ohe", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+                        ("ohe", OneHotEncoder(handle_unknown="ignore", min_frequency=10, sparse_output=True)),
                     ]
                 ),
                 categorical_cols,
@@ -228,13 +228,13 @@ def train_ensemble_pipeline(
     lr_xgb = learning_rate if learning_rate is not None else 0.03
     lr_cb = learning_rate if learning_rate is not None else 0.04
 
-    n_est_lgbm = n_estimators if n_estimators is not None else 300
-    n_est_xgb = n_estimators if n_estimators is not None else 250
-    n_est_cb = n_estimators if n_estimators is not None else 300
+    n_est_lgbm = n_estimators if n_estimators is not None else 5000
+    n_est_xgb = n_estimators if n_estimators is not None else 3000
+    n_est_cb = n_estimators if n_estimators is not None else 3000
 
     depth_xgb = max_depth if max_depth is not None else 5
     depth_cb = max_depth if max_depth is not None else 6
-    leaves_lgbm = num_leaves if num_leaves is not None else 31
+    leaves_lgbm = num_leaves if num_leaves is not None else 63
 
     sub_sample = subsample if subsample is not None else 0.8
     col_sample = colsample_bytree if colsample_bytree is not None else 0.8
@@ -253,13 +253,25 @@ def train_ensemble_pipeline(
         n_estimators=n_est_lgbm,
         learning_rate=lr_lgbm,
         num_leaves=leaves_lgbm,
+        max_depth=max_depth if max_depth is not None else 8,
+        min_child_samples=90,
         subsample=sub_sample,
+        subsample_freq=1,
         colsample_bytree=col_sample,
+        reg_alpha=0.5,
+        reg_lambda=2.0,
         random_state=seed,
         verbosity=-1,
         n_jobs=-1,
     )
-    lgbm.fit(x_train_tree, y_train)
+    lgbm.fit(
+        x_train_tree,
+        y_train,
+        eval_X=x_val_tree,
+        eval_y=y_val,
+        eval_metric="auc",
+        callbacks=[lgb.early_stopping(150, verbose=False), lgb.log_evaluation(0)],
+    )
     models["LightGBM"] = lgbm
     val_preds["LightGBM"] = lgbm.predict_proba(x_val_tree)[:, 1]
     test_preds["LightGBM"] = lgbm.predict_proba(x_test_tree)[:, 1]
@@ -275,8 +287,9 @@ def train_ensemble_pipeline(
         random_state=seed,
         n_jobs=-1,
         eval_metric="auc",
+        early_stopping_rounds=120,
     )
-    xgboost_model.fit(x_train_tree, y_train)
+    xgboost_model.fit(x_train_tree, y_train, eval_set=[(x_val_tree, y_val)], verbose=False)
     models["XGBoost"] = xgboost_model
     val_preds["XGBoost"] = xgboost_model.predict_proba(x_val_tree)[:, 1]
     test_preds["XGBoost"] = xgboost_model.predict_proba(x_test_tree)[:, 1]
@@ -290,8 +303,18 @@ def train_ensemble_pipeline(
         random_seed=seed,
         verbose=0,
         thread_count=-1,
+        loss_function="Logloss",
+        eval_metric="AUC",
+        l2_leaf_reg=5.0,
     )
-    catboost_model.fit(x_train_cat, y_train, cat_features=cat_cols)
+    catboost_model.fit(
+        x_train_cat,
+        y_train,
+        cat_features=cat_cols,
+        eval_set=(x_val_cat, y_val),
+        early_stopping_rounds=120,
+        use_best_model=True,
+    )
     models["CatBoost"] = catboost_model
     val_preds["CatBoost"] = catboost_model.predict_proba(x_val_cat)[:, 1]
     test_preds["CatBoost"] = catboost_model.predict_proba(x_test_cat)[:, 1]
