@@ -257,6 +257,84 @@
 
     @media (max-width: 880px) { .layout { grid-template-columns: 1fr; } .result-panel { position: static; } }
     @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } .form-panel, .result-panel { padding: 20px; } header { padding-top: 24px; } }
+
+    /* DESIGN.md — Vietnamese Credit Intelligence System */
+    :root {
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --shadow-xl: 0 4px 6px -1px rgba(15,23,42,.05), 0 2px 4px -2px rgba(15,23,42,.05);
+      --shadow-md: 0 4px 6px -1px rgba(15,23,42,.05), 0 2px 4px -2px rgba(15,23,42,.05);
+    }
+    body { background: #f8fafc; color: #1b1b1d; font-size: 16px; line-height: 1.5; }
+    header, main { width: min(1280px, calc(100% - 64px)); }
+    header { padding: 32px 0 24px; }
+    h1, h2, .panel-title h2, .underwriter-title { font-family: 'Be Vietnam Pro', sans-serif; }
+    h1 { font-size: clamp(2.25rem, 4vw, 3rem); line-height: 1.25; font-weight: 700; }
+    header p { font-size: 1rem; line-height: 1.5; }
+    .layout { grid-template-columns: minmax(390px, 1.12fr) minmax(330px, .94fr) minmax(330px, .94fr); gap: 24px; align-items: start; }
+    .panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 20px; box-shadow: var(--shadow-xl); backdrop-filter: none; }
+    .form-panel, .result-panel, .review-panel { padding: 24px; }
+    .result-panel, .review-panel { position: sticky; top: 24px; align-self: start; min-height: 560px; }
+    .column-kicker { margin-bottom: 4px; color: #4f46e5; font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+    .panel-title { margin-bottom: 24px; }
+    h2 { font-size: 24px; line-height: 32px; font-weight: 600; }
+    .eyebrow { font-family: 'Inter', sans-serif; font-size: 12px; line-height: 16px; border-color: #e2dfff; background: #eef2ff; }
+    .preset-btn, .btn-magic, button#submit-button, input, select, textarea#extract-input { border-radius: 8px; }
+    .preset-btn { box-shadow: none; padding: 10px 14px; min-height: 44px; }
+    .preset-btn:hover { transform: none; box-shadow: none; }
+    details.text-extract-box { border-radius: 16px; border-color: #e2e8f0; background: #f8fafc; box-shadow: none; }
+    details.text-extract-box[open] { background: #f8fafc; border-color: #c3c0ff; }
+    input, select { min-height: 44px; padding: 10px 16px; font-size: 14px; }
+    input:focus, select:focus, textarea#extract-input:focus { border: 2px solid #4f46e5; box-shadow: 0 0 0 4px rgba(79,70,229,.10); }
+    .section { margin-top: 24px; }
+    .section h3 { font-family: 'Inter', sans-serif; font-size: 12px; line-height: 16px; }
+    button#submit-button, .btn-magic { background: #4f46e5; border-radius: 8px; box-shadow: none; min-height: 44px; }
+    button#submit-button:hover, .btn-magic:hover { background: #4338ca; transform: none; box-shadow: none; }
+    .gauge-bg, .gauge-fill { stroke-width: 12; }
+    .score-number, #probability, .insight-value { font-family: 'Inter', sans-serif !important; font-variant-numeric: tabular-nums; }
+    .score-number { font-size: 48px; line-height: 60px; font-weight: 700; }
+    .factor-card { border-radius: 12px; box-shadow: none; }
+    .factor-bar-bg { height: 4px; }
+    .factor-bar-fill.good { background: #10b981; }
+    .factor-bar-fill.bad { background: #f43f5e; }
+    .explanation { border-radius: 0 12px 12px 0; font-size: 14px; line-height: 20px; }
+    .review-panel .empty { min-height: 510px; }
+    .review-intro { margin: -12px 0 16px; color: #64748b; font-size: 14px; line-height: 20px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; margin: 16px 0; }
+    .metric-card { padding: 16px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; }
+    .metric-label { color: #64748b; font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+    .metric-value { margin-top: 4px; color: #0f172a; font-size: 20px; line-height: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .flag-list { display: grid; gap: 8px; margin: 16px 0; }
+    .flag-item { padding: 10px 12px; border-radius: 8px; background: #f1f5f9; color: #475569; font-size: 14px; line-height: 20px; }
+    .flag-item.danger { background: #ffe4e6; color: #9f1239; }
+    .underwriter-card { margin-top: 16px; padding: 16px; border: 1px solid #e2e8f0; border-radius: 16px; background: #f8fafc; }
+    .underwriter-title { margin: 0 0 4px; font-size: 20px; line-height: 28px; font-weight: 600; }
+    .underwriter-copy { margin: 0 0 16px; color: #64748b; font-size: 14px; line-height: 20px; }
+    .underwriter-card textarea { width: 100%; min-height: 96px; padding: 12px 16px; resize: vertical; border: 1px solid #e2e8f0; border-radius: 8px; background: white; font: inherit; outline: none; }
+    .decision-options { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 16px 0; }
+    .decision-option { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; font-size: 12px; cursor: pointer; text-align: center; }
+    .decision-option input { width: auto; min-height: auto; accent-color: #4f46e5; }
+    .review-fields { display: grid; gap: 12px; }
+    .review-save { width: 100%; margin-top: 16px; justify-content: center; }
+    .save-status { display: block; margin-top: 8px; color: #059669; font-size: 12px; font-weight: 600; }
+    .chat-modal-window { background: #fff; backdrop-filter: none; border-color: #e2e8f0; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(15,23,42,.1),0 8px 10px -6px rgba(15,23,42,.1); }
+    .chat-fab-button { background: #4f46e5; box-shadow: 0 8px 16px rgba(79,70,229,.25); animation: none; }
+    @media (max-width: 1180px) {
+      header, main { width: min(960px, calc(100% - 48px)); }
+      .layout { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .form-panel { grid-column: 1/-1; }
+      .result-panel, .review-panel { position: static; }
+    }
+    @media (max-width: 760px) {
+      header, main { width: calc(100% - 32px); }
+      .layout { grid-template-columns: 1fr; }
+      .form-panel { grid-column: auto; }
+      .grid, .metric-grid { grid-template-columns: 1fr; }
+      .decision-options { grid-template-columns: 1fr; }
+      .form-panel, .result-panel, .review-panel { padding: 16px; }
+      h1 { font-size: 36px; line-height: 44px; }
+      h2 { font-size: 20px; line-height: 28px; }
+    }
   </style>
 </head>
 <body>
@@ -283,6 +361,7 @@
   <main class="layout">
     <!-- Left Column: Input Form & AI Parser -->
     <form id="score-form" class="panel form-panel">
+      <div class="column-kicker">Cột 1 · Dữ liệu đầu vào</div>
       <div class="panel-title">
         <h2>Hồ sơ thẩm định giả lập</h2>
         <span class="tag">Home Credit ACS Model</span>
@@ -434,8 +513,9 @@
       <div id="error-state" class="error" hidden></div>
 
       <div id="result" hidden>
+        <div class="column-kicker">Cột 2 · Model & XAI</div>
         <div class="panel-title">
-          <h2>Kết quả thẩm định</h2>
+          <h2>Điểm số & giải thích</h2>
           <span id="model-version" class="tag"></span>
         </div>
 
@@ -452,15 +532,6 @@
           <div class="score-display-text">
             <div id="score-value" class="score-number">—</div>
             <div class="score-caption">POC Safety Score (0.0 - 100.0)</div>
-          </div>
-        </div>
-
-        <!-- Executive Action Recommendation Badge -->
-        <div id="decision-card" class="decision-card">
-          <div id="decision-icon" class="decision-icon">⚡</div>
-          <div class="decision-text">
-            <div id="decision-title" class="decision-title">—</div>
-            <div id="decision-sub" class="decision-sub">—</div>
           </div>
         </div>
 
@@ -481,6 +552,57 @@
         <button type="button" class="btn-magic" style="margin-top:18px; width:100%; justify-content:center;" onclick="askAiAboutCurrentScore()">
           🤖 Hỏi AI Assistant về hồ sơ này
         </button>
+      </div>
+    </aside>
+
+    <!-- Third Column: Recommendation & Human Review -->
+    <aside class="panel review-panel" aria-live="polite">
+      <div id="review-empty" class="empty">
+        <div>
+          <div class="empty-icon">🧑‍💼</div>
+          <strong>Đề xuất & kiểm định nghiệp vụ</strong><br>
+          <span style="font-size:.86rem">Kết quả hỗ trợ và biểu mẫu quyết định sẽ xuất hiện sau khi chấm điểm.</span>
+        </div>
+      </div>
+      <div id="review-workspace" hidden>
+        <div class="column-kicker">Cột 3 · AI hỗ trợ & Human Review</div>
+        <div class="panel-title">
+          <h2>Đề xuất xử lý</h2>
+          <span id="proposal-source" class="tag">Policy Guard</span>
+        </div>
+        <p class="review-intro">Đề xuất chỉ hỗ trợ rà soát. Quyết định cuối cùng thuộc về nhân viên ngân hàng và chính sách tín dụng hiện hành.</p>
+
+        <div id="decision-card" class="decision-card">
+          <div id="decision-icon" class="decision-icon">⚡</div>
+          <div class="decision-text">
+            <div id="decision-title" class="decision-title">—</div>
+            <div id="decision-sub" class="decision-sub">—</div>
+          </div>
+        </div>
+        <div id="review-recommendation" class="explanation"></div>
+
+        <div class="metric-grid">
+          <div class="metric-card"><div class="metric-label">DTI hàng tháng</div><div id="dti-value" class="metric-value">—</div></div>
+          <div class="metric-card"><div class="metric-label">Đòn bẩy khoản vay</div><div id="leverage-value" class="metric-value">—</div></div>
+        </div>
+        <div id="review-flags" class="flag-list"></div>
+
+        <section class="underwriter-card">
+          <h3 class="underwriter-title">Kiểm định của nhân viên</h3>
+          <p class="underwriter-copy">Ghi nhận căn cứ và quyết định độc lập với khuyến nghị của model.</p>
+          <label><span>Ghi chú thẩm định</span><textarea id="underwriter-notes" placeholder="Tài liệu đã kiểm tra, nhận xét và căn cứ quyết định..."></textarea></label>
+          <div class="decision-options" role="radiogroup" aria-label="Quyết định cuối cùng">
+            <label class="decision-option"><input type="radio" name="final-decision" value="approved"> Phê duyệt</label>
+            <label class="decision-option"><input type="radio" name="final-decision" value="conditional"> Có điều kiện</label>
+            <label class="decision-option"><input type="radio" name="final-decision" value="rejected"> Từ chối</label>
+          </div>
+          <div class="review-fields">
+            <label id="approved-amount-wrap"><span>Hạn mức duyệt cuối cùng <em class="unit-hint">(VNĐ)</em></span><input id="final-approved-amount" type="text" placeholder="Ví dụ: 150.000.000"></label>
+            <label id="reject-reason-wrap" hidden><span>Lý do từ chối</span><select id="reject-reason"><option value="">— Chọn lý do —</option><option value="income">Thu nhập không đủ khả năng trả nợ</option><option value="leverage">Đòn bẩy tài chính vượt ngưỡng</option><option value="delinquency">Lịch sử quá hạn thanh toán</option><option value="inconsistent">Dữ liệu bất thường hoặc mâu thuẫn</option><option value="documents">Không đủ hồ sơ chứng minh</option><option value="policy">Không đáp ứng chính sách tín dụng</option></select></label>
+          </div>
+          <button id="save-review" type="button" class="btn-magic review-save">Lưu biên bản thẩm định</button>
+          <span id="save-review-status" class="save-status"></span>
+        </section>
       </div>
     </aside>
   </main>
@@ -750,6 +872,8 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
         errorBox.textContent = error.message;
         errorBox.hidden = false;
         document.querySelector("#result").hidden = true;
+        document.querySelector("#review-workspace").hidden = true;
+        document.querySelector("#review-empty").hidden = false;
       } finally {
         button.disabled = false;
         button.textContent = "⚡ Tính điểm & Phân tích rủi ro.";
@@ -761,6 +885,8 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
       document.querySelector("#empty-state").hidden = true;
       document.querySelector("#error-state").hidden = true;
       document.querySelector("#result").hidden = false;
+      document.querySelector("#review-empty").hidden = true;
+      document.querySelector("#review-workspace").hidden = false;
       document.querySelector("#model-version").textContent = result.model_version.split("-").slice(-2).join("-");
       
       const score = result.poc_score;
@@ -792,17 +918,19 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
       decCard.className = `decision-card ${result.risk_band}`;
       if (result.risk_band === 'low') {
         decIcon.textContent = '⚡';
-        decTitle.textContent = 'Phê duyệt tự động (STP)';
-        decSub.textContent = 'Hạn mức vay đề xuất: 150.000.000 VNĐ. Lãi suất ưu đãi.';
+        decTitle.textContent = 'Ưu tiên rà soát phê duyệt';
+        decSub.textContent = 'Rủi ro model thấp; tiếp tục xác minh hồ sơ và chính sách hạn mức.';
       } else if (result.risk_band === 'moderate') {
         decIcon.textContent = '🔍';
-        decTitle.textContent = 'Phê duyệt có điều kiện';
-        decSub.textContent = 'Yêu cầu thẩm định bổ sung sao kê tài khoản / hợp đồng lao động.';
+        decTitle.textContent = 'Thẩm định bổ sung';
+        decSub.textContent = 'Đối chiếu sao kê, nguồn thu nhập và nghĩa vụ nợ trước khi quyết định.';
       } else {
         decIcon.textContent = '🛡️';
-        decTitle.textContent = 'Cảnh báo rủi ro cực hạn';
-        decSub.textContent = result.data_quality.warnings.length ? result.data_quality.warnings.join('. ') : 'Đòn bẩy vượt ngưỡng an toàn (Sanity Guard Active).';
+        decTitle.textContent = 'Chuyển thẩm định chuyên sâu';
+        decSub.textContent = result.data_quality.warnings.length ? result.data_quality.warnings.join('. ') : 'Rủi ro model cao; cần kiểm tra chéo trước mọi quyết định.';
       }
+
+      renderReviewSupport(result);
 
       document.querySelector("#probability").textContent = `${(result.payment_difficulty_probability * 100).toFixed(2)}%`;
 
@@ -845,6 +973,71 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
       const notes = result.data_quality.warnings.length ? ` ${result.data_quality.warnings.join(" ")}` : "";
       document.querySelector("#quality").textContent = `Độ đầy đủ trường bắt buộc: ${quality}%. ${result.disclaimer}${notes}`;
     }
+
+    function numericInput(id) {
+      const value = document.querySelector(id)?.value || "0";
+      return Number(String(value).replace(/\./g, "")) || 0;
+    }
+
+    function renderReviewSupport(result) {
+      const income = numericInput("#input-AMT_INCOME_TOTAL");
+      const credit = numericInput("#input-AMT_CREDIT");
+      const annuity = numericInput("#input-AMT_ANNUITY");
+      const dti = income > 0 ? annuity / income : null;
+      const leverage = income > 0 ? credit / income : null;
+      document.querySelector("#dti-value").textContent = dti === null ? "Không xác định" : `${(dti * 100).toFixed(1)}%`;
+      document.querySelector("#leverage-value").textContent = leverage === null ? "Không xác định" : `${leverage.toFixed(2)}×`;
+      document.querySelector("#proposal-source").textContent = result.llm_used ? "LLM + Policy Guard" : "Rule Fallback";
+
+      const factors = (result.top_factors || []).slice(0, 3).map(item => item.description).join(", ");
+      const recommendation = result.risk_band === "low"
+        ? `Ưu tiên xác minh chứng từ thu nhập và dư nợ. Kiểm tra các yếu tố chính: ${factors}. Không phê duyệt chỉ dựa trên điểm model.`
+        : result.risk_band === "moderate"
+          ? `Yêu cầu sao kê hoặc chứng từ nguồn thu, đối chiếu nghĩa vụ nợ và các yếu tố: ${factors}.`
+          : `Chuyển thẩm định chuyên sâu, xác minh dữ liệu bất thường và khả năng trả nợ. Ưu tiên kiểm tra: ${factors}.`;
+      document.querySelector("#review-recommendation").textContent = recommendation;
+
+      const flags = [];
+      if (income <= 0) flags.push("Không thể tính tỷ lệ vì thu nhập không hợp lệ.");
+      if (leverage !== null && leverage > 25) flags.push("Khoản vay vượt quá 25 lần thu nhập.");
+      if (dti !== null && dti > 1) flags.push("Nghĩa vụ trả hàng tháng vượt quá 100% thu nhập.");
+      (result.data_quality.warnings || []).forEach(item => flags.push(item));
+      document.querySelector("#review-flags").innerHTML = flags.length
+        ? flags.map(item => `<div class="flag-item danger">⚠ ${escapeHtml(item)}</div>`).join("")
+        : `<div class="flag-item">✓ Chưa phát hiện cảnh báo theo các quy tắc hiện tại.</div>`;
+    }
+
+    const finalAmountInput = document.querySelector("#final-approved-amount");
+    finalAmountInput.addEventListener("input", () => {
+      finalAmountInput.value = formatNumberDots(finalAmountInput.value);
+    });
+
+    document.querySelectorAll('input[name="final-decision"]').forEach(input => {
+      input.addEventListener("change", () => {
+        const rejected = input.value === "rejected";
+        document.querySelector("#reject-reason-wrap").hidden = !rejected;
+        document.querySelector("#approved-amount-wrap").hidden = rejected;
+      });
+    });
+
+    document.querySelector("#save-review").addEventListener("click", () => {
+      const status = document.querySelector("#save-review-status");
+      const decision = document.querySelector('input[name="final-decision"]:checked')?.value;
+      const reason = document.querySelector("#reject-reason").value;
+      const amount = numericInput("#final-approved-amount");
+      if (!currentScoreResult) return;
+      if (!decision) { status.textContent = "Vui lòng chọn quyết định cuối cùng."; return; }
+      if (decision === "rejected" && !reason) { status.textContent = "Vui lòng chọn lý do từ chối."; return; }
+      if (decision !== "rejected" && amount <= 0) { status.textContent = "Vui lòng nhập hạn mức được duyệt."; return; }
+      localStorage.setItem("acs-underwriter-review", JSON.stringify({
+        savedAt: new Date().toISOString(), modelVersion: currentScoreResult.model_version,
+        score: currentScoreResult.poc_score, riskBand: currentScoreResult.risk_band,
+        decision, approvedAmount: decision === "rejected" ? null : amount,
+        rejectReason: decision === "rejected" ? reason : null,
+        notes: document.querySelector("#underwriter-notes").value.trim()
+      }));
+      status.textContent = `Đã lưu lúc ${new Date().toLocaleTimeString("vi-VN")}.`;
+    });
 
     function escapeHtml(value) {
       return String(value).replace(/[&<>'"]/g, char => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;"}[char]));
