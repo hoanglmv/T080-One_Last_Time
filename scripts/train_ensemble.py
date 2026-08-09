@@ -36,7 +36,7 @@ def main():
 
     res = train_ensemble_pipeline(
         data_dir="data/raw/home-credit-default-risk",
-        feature_set="serving",
+        feature_set="full",
         sample_size=None,
         seed=42,
     )
