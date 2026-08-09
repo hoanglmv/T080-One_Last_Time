@@ -32,7 +32,10 @@ Thumbs.db
 data/*
 !data/DATA.md
 !data/README.md
-artifacts/
+.kaggle-cache/
+.kaggle-cli/
+artifacts/*
+!artifacts/models/
 catboost_info/
 *.db
 *.sqlite3

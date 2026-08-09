@@ -70,6 +70,47 @@ ENGINEERED_FEATURES = (
     "FE_EXT_SOURCE_MISSING_COUNT",
 )
 
+ALTERNATIVE_ONLY_RAW_FEATURES = (
+    "NAME_CONTRACT_TYPE",
+    "AMT_INCOME_TOTAL",
+    "DAYS_BIRTH",
+    "DAYS_EMPLOYED",
+    "DAYS_REGISTRATION",
+    "DAYS_ID_PUBLISH",
+    "DAYS_LAST_PHONE_CHANGE",
+    "FLAG_EMP_PHONE",
+    "FLAG_WORK_PHONE",
+    "FLAG_EMAIL",
+    "CNT_CHILDREN",
+    "CNT_FAM_MEMBERS",
+    "REGION_RATING_CLIENT",
+    "REGION_RATING_CLIENT_W_CITY",
+    "FLAG_OWN_CAR",
+    "FLAG_OWN_REALTY",
+    "NAME_INCOME_TYPE",
+    "NAME_EDUCATION_TYPE",
+    "NAME_FAMILY_STATUS",
+    "NAME_HOUSING_TYPE",
+    "OCCUPATION_TYPE",
+    "ORGANIZATION_TYPE",
+    "OBS_30_CNT_SOCIAL_CIRCLE",
+    "DEF_30_CNT_SOCIAL_CIRCLE",
+    "OBS_60_CNT_SOCIAL_CIRCLE",
+    "DEF_60_CNT_SOCIAL_CIRCLE",
+)
+
+ALTERNATIVE_ONLY_ENGINEERED_FEATURES = (
+    "FE_INCOME_PER_PERSON",
+    "FE_INCOME_PER_CHILD",
+    "FE_EMPLOYMENT_TO_AGE",
+    "FE_AGE_YEARS",
+    "FE_EMPLOYMENT_YEARS",
+    "FE_REGISTRATION_YEARS",
+    "FE_ID_PUBLISH_YEARS",
+    "FE_PHONE_CHANGE_YEARS",
+    "FE_PHONE_TO_AGE",
+)
+
 FEATURE_DESCRIPTIONS = {
     "AMT_INCOME_TOTAL": "Thu nhập khai báo của khách hàng",
     "AMT_CREDIT": "Giá trị khoản tín dụng đề nghị",
@@ -257,9 +298,7 @@ def _aggregate_recent_records(
     for window in windows:
         recent = ordered.groupby(ID_COLUMN, sort=False).head(window)
         spec = {column: ["mean", "max", "min"] for column in value_columns}
-        outputs.append(
-            _flatten_aggregation_columns(recent.groupby(ID_COLUMN).agg(spec), f"{prefix}_RECENT_{window}")
-        )
+        outputs.append(_flatten_aggregation_columns(recent.groupby(ID_COLUMN).agg(spec), f"{prefix}_RECENT_{window}"))
     return outputs
 
 
@@ -367,9 +406,7 @@ def aggregate_installments(data_dir: Path, applicant_ids: set[int] | None = None
             "FE_INSTAL_PAYMENT_RATIO": ["mean", "min"],
             "FE_INSTAL_LATE": ["mean", "sum"],
         }
-        recent = _flatten_aggregation_columns(
-            recent_year.groupby(ID_COLUMN).agg(recent_spec), "INSTAL_RECENT_12M"
-        )
+        recent = _flatten_aggregation_columns(recent_year.groupby(ID_COLUMN).agg(recent_spec), "INSTAL_RECENT_12M")
         output = output.merge(recent, on=ID_COLUMN, how="left", validate="one_to_one")
     return output
 
@@ -411,9 +448,7 @@ def aggregate_credit_card(data_dir: Path, applicant_ids: set[int] | None = None)
     card = pd.read_csv(data_dir / "credit_card_balance.csv", usecols=columns)
     card = _filter_ids(card, applicant_ids)
     card = card[card["MONTHS_BALANCE"].isna() | (card["MONTHS_BALANCE"] <= 0)].copy()
-    card["FE_CC_UTILIZATION"] = safe_divide(
-        _series(card, "AMT_BALANCE"), _series(card, "AMT_CREDIT_LIMIT_ACTUAL")
-    )
+    card["FE_CC_UTILIZATION"] = safe_divide(_series(card, "AMT_BALANCE"), _series(card, "AMT_CREDIT_LIMIT_ACTUAL"))
     values = [column for column in card.columns if column != ID_COLUMN]
     spec = {column: ["min", "max", "mean", "sum"] for column in values}
     output = _flatten_aggregation_columns(card.groupby(ID_COLUMN).agg(spec), "CC")
@@ -437,8 +472,8 @@ def build_home_credit_features(
     application columns. ``full`` additionally aggregates the five relational
     tables. Full mode is intentionally explicit because it is memory intensive.
     """
-    if feature_set not in {"serving", "application", "full"}:
-        raise ValueError("feature_set must be one of: serving, application, full")
+    if feature_set not in {"serving", "application", "full", "alternative_only"}:
+        raise ValueError("feature_set must be one of: serving, application, full, alternative_only")
     application = pd.read_csv(data_dir / "application_train.csv", nrows=sample_size)
     application = engineer_application_features(application)
 
@@ -452,6 +487,16 @@ def build_home_credit_features(
             *PROTECTED_COLUMNS,
             *SERVING_RAW_FEATURES,
             *ENGINEERED_FEATURES,
+            "DAYS_EMPLOYED_ANOMALY",
+        ]
+        return application[[column for column in selected if column in application]].copy()
+    if feature_set == "alternative_only":
+        selected = [
+            ID_COLUMN,
+            TARGET_COLUMN,
+            *PROTECTED_COLUMNS,
+            *ALTERNATIVE_ONLY_RAW_FEATURES,
+            *ALTERNATIVE_ONLY_ENGINEERED_FEATURES,
             "DAYS_EMPLOYED_ANOMALY",
         ]
         return application[[column for column in selected if column in application]].copy()

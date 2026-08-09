@@ -2,9 +2,9 @@
 
 ## Phạm vi
 
-- Model: `lightgbm`
-- Version: `hc-poc-20260805T162444Z-52e96b89`
-- Feature set: `full`
+- Model: `logistic_regression`
+- Version: `hc-poc-20260808T111014Z-52e96b89`
+- Feature set: `alternative_only`
 - Split: `stratified_random_70_15_15_no_temporal_claim`
 - Số mẫu: `50000`
 
@@ -12,12 +12,12 @@
 
 | Metric | Giá trị |
 |---|---:|
-| ROC-AUC | 0.764619 |
-| PR-AUC | 0.264726 |
-| KS | 0.404595 |
-| Gini | 0.529237 |
-| Brier | 0.066668 |
-| ECE (10 bins) | 0.004716 |
+| ROC-AUC | 0.665773 |
+| PR-AUC | 0.145995 |
+| KS | 0.249145 |
+| Gini | 0.331546 |
+| Brier | 0.072022 |
+| ECE (10 bins) | 0.004620 |
 
 ## Giới hạn bắt buộc
 

@@ -99,11 +99,6 @@ def load_all_datasets(force_download: bool = False):
     print("==================================================")
     download_competition("home-credit-default-risk", force_download=force_download)
 
-    print("\n==================================================")
-    print("2. Loading Vietnam Bank Churn Dataset")
-    print("==================================================")
-    download_dataset("tranhuunhan/vietnam-bank-churn-dataset-2025", force_download=force_download)
-
 
 if __name__ == "__main__":
     load_all_datasets()

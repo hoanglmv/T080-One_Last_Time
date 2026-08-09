@@ -57,3 +57,39 @@ def test_credit_and_stability_metrics_are_consistent():
 def test_psi_is_zero_for_identical_distributions():
     reference = np.linspace(0.01, 0.99, 1000)
     assert population_stability_index(reference, reference) == pytest.approx(0.0)
+
+
+def test_alternative_only_feature_set_has_no_traditional_features(tmp_path):
+    from src.credit_scoring.features import build_home_credit_features
+
+    # Create dummy application_train.csv
+    df = pd.DataFrame(
+        {
+            "SK_ID_CURR": [100001],
+            "TARGET": [0],
+            "CODE_GENDER": ["M"],
+            "NAME_CONTRACT_TYPE": ["Cash loans"],
+            "AMT_INCOME_TOTAL": [150000.0],
+            "AMT_CREDIT": [300000.0],
+            "AMT_ANNUITY": [15000.0],
+            "DAYS_BIRTH": [-10000],
+            "DAYS_EMPLOYED": [-1000],
+            "DAYS_LAST_PHONE_CHANGE": [-100],
+            "EXT_SOURCE_1": [0.5],
+            "EXT_SOURCE_2": [0.6],
+            "EXT_SOURCE_3": [0.7],
+        }
+    )
+    df.to_csv(tmp_path / "application_train.csv", index=False)
+
+    frame = build_home_credit_features(tmp_path, feature_set="alternative_only")
+
+    # Verify no traditional features present
+    excluded = ["EXT_SOURCE_1", "EXT_SOURCE_2", "EXT_SOURCE_3", "AMT_CREDIT", "AMT_ANNUITY", "FE_CREDIT_TO_INCOME"]
+    for col in excluded:
+        assert col not in frame.columns
+
+    # Verify alternative features present
+    assert "DAYS_LAST_PHONE_CHANGE" in frame.columns
+    assert "AMT_INCOME_TOTAL" in frame.columns
+

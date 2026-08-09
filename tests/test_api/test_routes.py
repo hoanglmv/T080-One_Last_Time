@@ -17,7 +17,6 @@ async def test_health(client):
     assert data["status"] == "ok"
 
 
-
 @pytest.mark.asyncio
 async def test_chat_empty_message(client):
     response = await client.post("/api/v1/chat", json={"message": ""})

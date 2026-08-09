@@ -34,14 +34,12 @@ app.add_middleware(
 app.include_router(router, prefix="/api/v1")
 
 
+from fastapi.responses import RedirectResponse
+
+
 @app.get("/")
 async def root():
-    return {
-        "message": "Alternative Credit Scoring POC API is running",
-        "docs": "/docs",
-        "health": "/health",
-        "credit_demo": "/api/v1/credit/demo",
-    }
+    return RedirectResponse(url="/api/v1/credit/demo")
 
 
 @app.get("/health")

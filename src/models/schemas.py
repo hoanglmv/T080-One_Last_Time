@@ -67,6 +67,8 @@ class CreditDataQuality(BaseModel):
 class CreditScoreResponse(BaseModel):
     model_version: str
     model_name: str
+    auto_detected_model: str = Field(default="", description="Mô hình được hệ thống tự động nhận biết")
+    model_routing_reason: str = Field(default="", description="Lý do hệ thống tự động nhận biết mô hình")
     payment_difficulty_probability: float
     poc_score: float
     poc_score_definition: str
