@@ -29,6 +29,15 @@ from pathlib import Path
 
 VN_TZ = timezone(timedelta(hours=7))
 
+# Windows consoles may default to cp1252, which cannot print Vietnamese text
+# or the status emoji used below. Hook payloads and log files remain UTF-8.
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 
 def git(cmd):
     try:

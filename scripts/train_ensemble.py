@@ -7,17 +7,36 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import joblib
 import pandas as pd
-from src.credit_scoring.ensemble_pipeline import train_ensemble_pipeline
+
+
+def format_comparison_table(metrics: dict, weights: dict) -> str:
+    """Format test metrics as a fixed-width, four-decimal comparison table."""
+    rows = []
+    for model_name, model_metrics in metrics.items():
+        rows.append(
+            {
+                "Model": model_name,
+                "Blending Weight": f"{weights.get(model_name, 0.0):.4f}",
+                "ROC-AUC": f"{model_metrics['roc_auc']:.4f}",
+                "PR-AUC": f"{model_metrics['pr_auc']:.4f}",
+                "Gini": f"{model_metrics['gini']:.4f}",
+                "KS Stat": f"{model_metrics['ks']:.4f}",
+                "ECE": f"{model_metrics['ece_10']:.4f}",
+            }
+        )
+    return pd.DataFrame(rows).to_string(index=False)
 
 
 def main():
+    from src.credit_scoring.ensemble_pipeline import train_ensemble_pipeline
+
     print("================================================================================")
     print("🚀 HUẤN LUYỆN BỘ MÔ HÌNH ENSEMBLE ĐA MÔ HÌNH (LightGBM + XGBoost + CatBoost + LogReg)")
     print("================================================================================")
 
     res = train_ensemble_pipeline(
         data_dir="data/raw/home-credit-default-risk",
-        feature_set="serving",
+        feature_set="full",
         sample_size=None,
         seed=42,
     )
@@ -25,25 +44,10 @@ def main():
     metrics = res["test_metrics"]
     weights = res["optimal_weights"]
 
-    rows = []
-    for model_name, m in metrics.items():
-        weight_str = f"{weights.get(model_name, 0.0):.4f}" if model_name in weights else "-"
-        rows.append({
-            "Model": model_name,
-            "Blending Weight": weight_str,
-            "ROC-AUC": f"{m['roc_auc']:.4f}",
-            "PR-AUC": f"{m['pr_auc']:.4f}",
-            "Gini": f"{m['gini']:.4f}",
-            "KS Stat": f"{m['ks']:.4f}",
-            "ECE": f"{m['ece_10']:.4f}",
-        })
-
-    df_res = pd.DataFrame(rows)
-
     print("\n================================================================================")
     print("📊 BẢNG SO SÁNH HIỆU NĂNG TẬP TEST (MULTI-MODEL COMPARISON TABLE)")
     print("================================================================================")
-    print(df_res.to_string(index=False))
+    print(format_comparison_table(metrics, weights))
 
     # Save Ensemble artifact
     output_path = Path("artifacts/models/ensemble_model.joblib")

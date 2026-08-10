@@ -191,31 +191,34 @@ def build_preprocessor(frame: pd.DataFrame, columns: list[str]) -> tuple[ColumnT
     return preprocessor, numeric, categorical
 
 
-def _candidate_models(seed: int) -> dict[str, Any]:
-    return {
-        "logistic_regression": LogisticRegression(
-            C=0.1,
-            class_weight="balanced",
-            max_iter=600,
-            solver="liblinear",
-            random_state=seed,
-        ),
+def _candidate_models(seed: int, *, include_logistic: bool = True) -> dict[str, Any]:
+    models: dict[str, Any] = {
         "lightgbm": lgb.LGBMClassifier(
             objective="binary",
-            n_estimators=800,
-            learning_rate=0.03,
-            num_leaves=31,
-            max_depth=-1,
-            min_child_samples=60,
+            n_estimators=5000,
+            learning_rate=0.02,
+            num_leaves=63,
+            max_depth=8,
+            min_child_samples=90,
             subsample=0.85,
+            subsample_freq=1,
             colsample_bytree=0.85,
-            reg_alpha=0.05,
-            reg_lambda=0.1,
+            reg_alpha=0.5,
+            reg_lambda=2.0,
             random_state=seed,
             n_jobs=-1,
             verbosity=-1,
         ),
     }
+    if include_logistic:
+        models["logistic_regression"] = LogisticRegression(
+            C=0.1,
+            class_weight="balanced",
+            max_iter=600,
+            solver="liblinear",
+            random_state=seed,
+        )
+    return models
 
 
 def _fit_candidate(
@@ -233,7 +236,7 @@ def _fit_candidate(
             eval_X=x_validation,
             eval_y=y_validation,
             eval_metric="auc",
-            callbacks=[lgb.early_stopping(80, verbose=False)],
+            callbacks=[lgb.early_stopping(150, verbose=False), lgb.log_evaluation(0)],
         )
     else:
         estimator.fit(x_train, y_train)
@@ -312,7 +315,7 @@ def train_credit_model(
     candidates: dict[str, Any] = {}
     validation_reports: dict[str, dict[str, Any]] = {}
     selection_scores: dict[str, float] = {}
-    for name, estimator in _candidate_models(seed).items():
+    for name, estimator in _candidate_models(seed, include_logistic=feature_set != "full").items():
         estimator = _fit_candidate(name, estimator, x_train, y_train, x_validation, y_validation)
         probability = estimator.predict_proba(x_validation)[:, 1]
         metrics = credit_metrics(y_validation, probability)

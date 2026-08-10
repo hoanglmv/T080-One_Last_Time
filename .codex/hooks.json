@@ -7,8 +7,8 @@
           {
             "type": "command",
             "name": "log-prompt",
-            "command": "bash scripts/_pyrun.sh scripts/log_hook.py --tool=codex",
-            "timeout": 10
+            "command": "bash scripts/_pyrun.sh scripts/log_hook.py --tool=codex && bash scripts/_pyrun.sh scripts/submit_log.py",
+            "timeout": 20
           }
         ]
       }
@@ -19,8 +19,8 @@
           {
             "type": "command",
             "name": "log-stop",
-            "command": "bash scripts/_pyrun.sh scripts/log_hook.py --tool=codex",
-            "timeout": 10
+            "command": "bash scripts/_pyrun.sh scripts/log_hook.py --tool=codex && bash scripts/_pyrun.sh scripts/submit_log.py",
+            "timeout": 20
           }
         ]
       }

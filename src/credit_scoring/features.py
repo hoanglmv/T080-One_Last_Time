@@ -18,6 +18,8 @@ TARGET_COLUMN = "TARGET"
 ID_COLUMN = "SK_ID_CURR"
 PROTECTED_COLUMNS = ("CODE_GENDER",)
 TIME_COLUMN_CANDIDATES = ("WEEK_NUM", "date_decision", "DATE_DECISION")
+MONTH_WINDOWS = (3, 6, 12, 24)
+DAY_WINDOWS = (30, 90, 180, 365)
 
 # A compact field set that a user can reasonably provide in the POC form.
 SERVING_RAW_FEATURES = (
@@ -157,6 +159,59 @@ def safe_divide(numerator: pd.Series, denominator: pd.Series) -> pd.Series:
     return result.replace([np.inf, -np.inf], np.nan)
 
 
+def grouped_linear_trend(
+    frame: pd.DataFrame,
+    *,
+    group_column: str,
+    time_column: str,
+    value_column: str,
+    output_column: str,
+) -> pd.DataFrame:
+    """Return the vectorized OLS slope of value over relative time per group."""
+    data = frame[[group_column, time_column, value_column]].dropna().copy()
+    if data.empty:
+        return pd.DataFrame(columns=[group_column, output_column])
+    data["_xy"] = data[time_column] * data[value_column]
+    data["_xx"] = data[time_column].astype("float64").pow(2)
+    grouped = data.groupby(group_column).agg(
+        n=(time_column, "count"),
+        sum_x=(time_column, "sum"),
+        sum_y=(value_column, "sum"),
+        sum_xy=("_xy", "sum"),
+        sum_xx=("_xx", "sum"),
+    )
+    denominator = grouped["n"] * grouped["sum_xx"] - grouped["sum_x"].astype("float64").pow(2)
+    grouped[output_column] = (
+        grouped["n"] * grouped["sum_xy"] - grouped["sum_x"] * grouped["sum_y"]
+    ) / denominator.replace(0, np.nan)
+    return grouped[[output_column]].reset_index()
+
+
+def _window_aggregates(
+    frame: pd.DataFrame,
+    *,
+    time_column: str,
+    value_columns: Sequence[str],
+    windows: Iterable[int],
+    prefix: str,
+) -> list[pd.DataFrame]:
+    """Aggregate observations in recent relative-time windows at applicant level."""
+    outputs: list[pd.DataFrame] = []
+    for window in windows:
+        recent = frame[frame[time_column] >= -window]
+        if recent.empty:
+            continue
+        spec = {column: ["mean", "max", "sum"] for column in value_columns}
+        outputs.append(_flatten_aggregation_columns(recent.groupby(ID_COLUMN).agg(spec), f"{prefix}_{window}"))
+    return outputs
+
+
+def _merge_one_to_one(base: pd.DataFrame, additions: Iterable[pd.DataFrame]) -> pd.DataFrame:
+    for addition in additions:
+        base = base.merge(addition, on=ID_COLUMN, how="left", validate="one_to_one")
+    return base
+
+
 def engineer_application_features(frame: pd.DataFrame) -> pd.DataFrame:
     """Create row-local application features used in both training and serving."""
     result = frame.copy()
@@ -282,6 +337,29 @@ def aggregate_bureau(data_dir: Path, applicant_ids: set[int] | None = None) -> p
         status_agg = _flatten_aggregation_columns(subset.groupby(ID_COLUMN).agg(status_spec), prefix)
         overall = overall.merge(status_agg, on=ID_COLUMN, how="left", validate="one_to_one")
 
+    balance_path = data_dir / "bureau_balance.csv"
+    if balance_path.exists() and not bureau.empty:
+        balance = pd.read_csv(balance_path, usecols=["SK_ID_BUREAU", "MONTHS_BALANCE", "STATUS"])
+        balance = balance[balance["MONTHS_BALANCE"].isna() | (balance["MONTHS_BALANCE"] <= 0)].copy()
+        balance = balance.merge(
+            bureau[["SK_ID_BUREAU", ID_COLUMN]].drop_duplicates(),
+            on="SK_ID_BUREAU",
+            how="inner",
+            validate="many_to_one",
+        )
+        balance["FE_BB_LATE"] = balance["STATUS"].isin(["1", "2", "3", "4", "5"]).astype("int8")
+        status_map = {"0": 0.0, "1": 1.0, "2": 2.0, "3": 3.0, "4": 4.0, "5": 5.0, "C": -1.0}
+        balance["FE_BB_STATUS"] = balance["STATUS"].map(status_map)
+        balance_windows = _window_aggregates(
+            balance,
+            time_column="MONTHS_BALANCE",
+            value_columns=["FE_BB_LATE", "FE_BB_STATUS"],
+            windows=MONTH_WINDOWS,
+            prefix="BUREAU_BAL_RECENT_M",
+        )
+        overall = _merge_one_to_one(overall, balance_windows)
+        del balance
+
     return overall
 
 
@@ -399,48 +477,86 @@ def aggregate_installments(data_dir: Path, applicant_ids: set[int] | None = None
     counts = installments.groupby(ID_COLUMN).size().rename("INSTAL_PAYMENT_COUNT").reset_index()
     output = output.merge(counts, on=ID_COLUMN, how="left", validate="one_to_one")
 
-    recent_year = installments[installments["DAYS_INSTALMENT"] >= -365]
-    if not recent_year.empty:
-        recent_spec = {
-            "FE_INSTAL_DPD": ["max", "mean", "sum"],
-            "FE_INSTAL_PAYMENT_RATIO": ["mean", "min"],
-            "FE_INSTAL_LATE": ["mean", "sum"],
-        }
-        recent = _flatten_aggregation_columns(recent_year.groupby(ID_COLUMN).agg(recent_spec), "INSTAL_RECENT_12M")
-        output = output.merge(recent, on=ID_COLUMN, how="left", validate="one_to_one")
+    recent = _window_aggregates(
+        installments,
+        time_column="DAYS_INSTALMENT",
+        value_columns=["FE_INSTAL_DPD", "FE_INSTAL_PAYMENT_RATIO", "FE_INSTAL_LATE", "AMT_PAYMENT"],
+        windows=DAY_WINDOWS,
+        prefix="INSTAL_RECENT_D",
+    )
+    output = _merge_one_to_one(output, recent)
+    output["INSTAL_LATE_RATE_RECENT_VS_ALL"] = (
+        output.get("INSTAL_RECENT_D_365_FE_INSTAL_LATE_MEAN") - output.get("INSTAL_FE_INSTAL_LATE_MEAN")
+    )
     return output
 
 
 def aggregate_pos_cash(data_dir: Path, applicant_ids: set[int] | None = None) -> pd.DataFrame:
-    columns = [ID_COLUMN, "MONTHS_BALANCE", "CNT_INSTALMENT", "CNT_INSTALMENT_FUTURE", "SK_DPD", "SK_DPD_DEF"]
+    columns = [
+        ID_COLUMN,
+        "SK_ID_PREV",
+        "MONTHS_BALANCE",
+        "CNT_INSTALMENT",
+        "CNT_INSTALMENT_FUTURE",
+        "SK_DPD",
+        "SK_DPD_DEF",
+    ]
     pos = pd.read_csv(data_dir / "POS_CASH_balance.csv", usecols=columns)
     pos = _filter_ids(pos, applicant_ids)
-    pos = pos[pos["MONTHS_BALANCE"].isna() | (pos["MONTHS_BALANCE"] <= 0)]
-    spec = {
-        "MONTHS_BALANCE": ["min", "max", "mean"],
-        "CNT_INSTALMENT": ["min", "max", "mean"],
-        "CNT_INSTALMENT_FUTURE": ["min", "max", "mean"],
-        "SK_DPD": ["max", "mean", "sum"],
-        "SK_DPD_DEF": ["max", "mean", "sum"],
+    pos = pos[pos["MONTHS_BALANCE"].isna() | (pos["MONTHS_BALANCE"] <= 0)].copy()
+    pos["FE_POS_LATE"] = _series(pos, "SK_DPD").gt(0).astype("int8")
+    pos = pos.sort_values(["SK_ID_PREV", "MONTHS_BALANCE"])
+    for lag in (1, 3, 6):
+        pos[f"FE_POS_DPD_DIFF_{lag}M"] = pos["SK_DPD"] - pos.groupby("SK_ID_PREV")["SK_DPD"].shift(lag)
+        pos[f"FE_POS_FUTURE_DIFF_{lag}M"] = (
+            pos["CNT_INSTALMENT_FUTURE"] - pos.groupby("SK_ID_PREV")["CNT_INSTALMENT_FUTURE"].shift(lag)
+        )
+    loan_spec = {
+        "MONTHS_BALANCE": ["count", "min", "max"],
+        "CNT_INSTALMENT_FUTURE": ["mean", "min", "max"],
+        "SK_DPD": ["mean", "max", "sum"],
+        "SK_DPD_DEF": ["mean", "max", "sum"],
+        "FE_POS_LATE": ["mean", "sum"],
+        **{f"FE_POS_DPD_DIFF_{lag}M": ["last"] for lag in (1, 3, 6)},
+        **{f"FE_POS_FUTURE_DIFF_{lag}M": ["last"] for lag in (1, 3, 6)},
     }
-    output = _flatten_aggregation_columns(pos.groupby(ID_COLUMN).agg(spec), "POS")
-    return output.merge(
-        pos.groupby(ID_COLUMN).size().rename("POS_RECORD_COUNT").reset_index(),
-        on=ID_COLUMN,
-        how="left",
-        validate="one_to_one",
+    loans = _flatten_aggregation_columns(pos.groupby([ID_COLUMN, "SK_ID_PREV"]).agg(loan_spec), "POS_LOAN")
+    trend = grouped_linear_trend(
+        pos,
+        group_column="SK_ID_PREV",
+        time_column="MONTHS_BALANCE",
+        value_column="SK_DPD",
+        output_column="FE_POS_DPD_TREND",
+    )
+    loans = loans.merge(trend, on="SK_ID_PREV", how="left", validate="one_to_one")
+    loan_values = [column for column in loans if column not in {ID_COLUMN, "SK_ID_PREV"}]
+    output = _flatten_aggregation_columns(
+        loans.groupby(ID_COLUMN).agg({column: ["mean", "max", "sum"] for column in loan_values}), "POS"
+    )
+    output["POS_LOAN_COUNT"] = loans.groupby(ID_COLUMN).size().reindex(output[ID_COLUMN]).to_numpy()
+    return _merge_one_to_one(
+        output,
+        _window_aggregates(
+            pos,
+            time_column="MONTHS_BALANCE",
+            value_columns=["SK_DPD", "SK_DPD_DEF", "FE_POS_LATE", "CNT_INSTALMENT_FUTURE"],
+            windows=MONTH_WINDOWS,
+            prefix="POS_RECENT_M",
+        ),
     )
 
 
 def aggregate_credit_card(data_dir: Path, applicant_ids: set[int] | None = None) -> pd.DataFrame:
     columns = [
         ID_COLUMN,
+        "SK_ID_PREV",
         "MONTHS_BALANCE",
         "AMT_BALANCE",
         "AMT_CREDIT_LIMIT_ACTUAL",
         "AMT_DRAWINGS_CURRENT",
         "AMT_PAYMENT_CURRENT",
         "AMT_PAYMENT_TOTAL_CURRENT",
+        "AMT_INST_MIN_REGULARITY",
         "AMT_TOTAL_RECEIVABLE",
         "SK_DPD",
         "SK_DPD_DEF",
@@ -449,14 +565,59 @@ def aggregate_credit_card(data_dir: Path, applicant_ids: set[int] | None = None)
     card = _filter_ids(card, applicant_ids)
     card = card[card["MONTHS_BALANCE"].isna() | (card["MONTHS_BALANCE"] <= 0)].copy()
     card["FE_CC_UTILIZATION"] = safe_divide(_series(card, "AMT_BALANCE"), _series(card, "AMT_CREDIT_LIMIT_ACTUAL"))
-    values = [column for column in card.columns if column != ID_COLUMN]
-    spec = {column: ["min", "max", "mean", "sum"] for column in values}
-    output = _flatten_aggregation_columns(card.groupby(ID_COLUMN).agg(spec), "CC")
-    return output.merge(
-        card.groupby(ID_COLUMN).size().rename("CC_RECORD_COUNT").reset_index(),
-        on=ID_COLUMN,
-        how="left",
-        validate="one_to_one",
+    card["FE_CC_PAYMENT_TO_MIN"] = safe_divide(
+        _series(card, "AMT_PAYMENT_TOTAL_CURRENT"), _series(card, "AMT_INST_MIN_REGULARITY")
+    ).clip(upper=100)
+    card["FE_CC_DRAWINGS_TO_PAYMENT"] = safe_divide(
+        _series(card, "AMT_DRAWINGS_CURRENT"), _series(card, "AMT_PAYMENT_TOTAL_CURRENT")
+    ).clip(upper=100)
+    card["FE_CC_UNDERPAID_MIN"] = (
+        (_series(card, "AMT_PAYMENT_TOTAL_CURRENT") < _series(card, "AMT_INST_MIN_REGULARITY"))
+        & _series(card, "AMT_INST_MIN_REGULARITY").gt(0)
+    ).astype("int8")
+    card = card.sort_values(["SK_ID_PREV", "MONTHS_BALANCE"])
+    for lag in (1, 3, 6):
+        card[f"FE_CC_UTIL_DIFF_{lag}M"] = (
+            card["FE_CC_UTILIZATION"] - card.groupby("SK_ID_PREV")["FE_CC_UTILIZATION"].shift(lag)
+        )
+        card[f"FE_CC_BALANCE_DIFF_{lag}M"] = card["AMT_BALANCE"] - card.groupby("SK_ID_PREV")[
+            "AMT_BALANCE"
+        ].shift(lag)
+    loan_values = [
+        "AMT_BALANCE",
+        "FE_CC_UTILIZATION",
+        "FE_CC_PAYMENT_TO_MIN",
+        "FE_CC_DRAWINGS_TO_PAYMENT",
+        "FE_CC_UNDERPAID_MIN",
+        "SK_DPD",
+        "SK_DPD_DEF",
+    ]
+    loan_spec = {column: ["mean", "max", "sum", "last"] for column in loan_values}
+    loan_spec.update({f"FE_CC_UTIL_DIFF_{lag}M": ["last"] for lag in (1, 3, 6)})
+    loan_spec.update({f"FE_CC_BALANCE_DIFF_{lag}M": ["last"] for lag in (1, 3, 6)})
+    loans = _flatten_aggregation_columns(card.groupby([ID_COLUMN, "SK_ID_PREV"]).agg(loan_spec), "CC_LOAN")
+    trend = grouped_linear_trend(
+        card,
+        group_column="SK_ID_PREV",
+        time_column="MONTHS_BALANCE",
+        value_column="FE_CC_UTILIZATION",
+        output_column="FE_CC_UTIL_TREND",
+    )
+    loans = loans.merge(trend, on="SK_ID_PREV", how="left", validate="one_to_one")
+    aggregate_values = [column for column in loans if column not in {ID_COLUMN, "SK_ID_PREV"}]
+    output = _flatten_aggregation_columns(
+        loans.groupby(ID_COLUMN).agg({column: ["mean", "max", "sum"] for column in aggregate_values}), "CC"
+    )
+    output["CC_CARD_COUNT"] = loans.groupby(ID_COLUMN).size().reindex(output[ID_COLUMN]).to_numpy()
+    return _merge_one_to_one(
+        output,
+        _window_aggregates(
+            card,
+            time_column="MONTHS_BALANCE",
+            value_columns=["FE_CC_UTILIZATION", "FE_CC_UNDERPAID_MIN", "SK_DPD", "AMT_BALANCE"],
+            windows=MONTH_WINDOWS,
+            prefix="CC_RECENT_M",
+        ),
     )
 
 
@@ -465,6 +626,7 @@ def build_home_credit_features(
     *,
     feature_set: str = "serving",
     sample_size: int | None = None,
+    application_file: str = "application_train.csv",
 ) -> pd.DataFrame:
     """Build an applicant-level matrix from immutable raw CSV files.
 
@@ -472,9 +634,9 @@ def build_home_credit_features(
     application columns. ``full`` additionally aggregates the five relational
     tables. Full mode is intentionally explicit because it is memory intensive.
     """
-    if feature_set not in {"serving", "application", "full", "alternative_only"}:
-        raise ValueError("feature_set must be one of: serving, application, full, alternative_only")
-    application = pd.read_csv(data_dir / "application_train.csv", nrows=sample_size)
+    if feature_set not in {"serving", "application", "full"}:
+        raise ValueError("feature_set must be one of: serving, application, full")
+    application = pd.read_csv(data_dir / application_file, nrows=sample_size)
     application = engineer_application_features(application)
 
     if feature_set == "serving":
