@@ -104,7 +104,8 @@ Codex yêu cầu người dùng xác nhận riêng từng command hook, kể c�
 
 1. Chạy `/hooks`.
 2. Xác nhận Codex đã tìm thấy `.codex/hooks.json`.
-3. Chọn trust/enable cho `log-prompt` và `log-stop`.
+3. Chọn trust/enable command handler trong hai event `UserPromptSubmit` và
+   `Stop`.
 4. Gửi một prompt mới rồi kiểm tra `.ai-log/session.jsonl`.
 
 Codex lưu trust theo hash của hook. Vì vậy, nếu nội dung hook được cập nhật, bạn
@@ -176,9 +177,10 @@ Log thật được gửi tự động ở lần `git push` tiếp theo. Không 
   lại ở lần push tiếp theo.
 - **Đã pull cấu hình mới nhưng hook không chạy:** chạy lại script ở bước 3 và
   khởi động lại AI tool.
-- **Codex không log:** chạy `/hooks`, trust/enable hai hook của project rồi gửi
-  một prompt mới. Nếu dùng Codex CLI trong WSL, chạy `codex --version` và cài
-  lại CLI nếu package native Linux đang bị thiếu.
+- **Codex không log:** chạy `/hooks`, trust/enable command handler trong hai
+  event `UserPromptSubmit` và `Stop`, rồi gửi một prompt mới. Nếu dùng Codex CLI
+  trong WSL, chạy `codex --version` và cài lại CLI nếu package native Linux đang
+  bị thiếu.
 
 ## Checklist cho thành viên mới
 

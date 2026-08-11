@@ -634,58 +634,6 @@
           </div>
         </section>
       </div>
-    </aside>
-
-    <!-- Third Column: Recommendation & Human Review -->
-    <aside class="panel review-panel" aria-live="polite">
-      <div id="review-empty" class="empty">
-        <div>
-          <div class="empty-icon">🧑‍💼</div>
-          <strong>Đề xuất & kiểm định nghiệp vụ</strong><br>
-          <span style="font-size:.86rem">Kết quả hỗ trợ và biểu mẫu quyết định sẽ xuất hiện sau khi chấm điểm.</span>
-        </div>
-      </div>
-      <div id="review-workspace" hidden>
-        <div class="column-kicker">Cột 3 · AI hỗ trợ & Human Review</div>
-        <div class="panel-title">
-          <h2>Đề xuất xử lý</h2>
-          <span id="proposal-source" class="tag">Policy Guard</span>
-        </div>
-        <p class="review-intro">Đề xuất chỉ hỗ trợ rà soát. Quyết định cuối cùng thuộc về nhân viên ngân hàng và chính sách tín dụng hiện hành.</p>
-
-        <div id="decision-card" class="decision-card">
-          <div id="decision-icon" class="decision-icon">⚡</div>
-          <div class="decision-text">
-            <div id="decision-title" class="decision-title">—</div>
-            <div id="decision-sub" class="decision-sub">—</div>
-          </div>
-        </div>
-        <div id="review-recommendation" class="explanation"></div>
-
-        <div class="metric-grid">
-          <div class="metric-card"><div class="metric-label">DTI hàng tháng</div><div id="dti-value" class="metric-value">—</div></div>
-          <div class="metric-card"><div class="metric-label">Đòn bẩy khoản vay</div><div id="leverage-value" class="metric-value">—</div></div>
-        </div>
-        <div id="review-flags" class="flag-list"></div>
-
-        <section class="underwriter-card">
-          <h3 class="underwriter-title">Kiểm định của nhân viên</h3>
-          <p class="underwriter-copy">Ghi nhận căn cứ và quyết định độc lập với khuyến nghị của model.</p>
-          <label><span>Ghi chú thẩm định</span><textarea id="underwriter-notes" placeholder="Tài liệu đã kiểm tra, nhận xét và căn cứ quyết định..."></textarea></label>
-          <div class="decision-options" role="radiogroup" aria-label="Quyết định cuối cùng">
-            <label class="decision-option"><input type="radio" name="final-decision" value="approved"> Phê duyệt</label>
-            <label class="decision-option"><input type="radio" name="final-decision" value="conditional"> Có điều kiện</label>
-            <label class="decision-option"><input type="radio" name="final-decision" value="rejected"> Từ chối</label>
-          </div>
-          <div class="review-fields">
-            <label id="approved-amount-wrap"><span>Hạn mức duyệt cuối cùng <em class="unit-hint">(VNĐ)</em></span><input id="final-approved-amount" type="text" placeholder="Ví dụ: 150.000.000"></label>
-            <label id="reject-reason-wrap" hidden><span>Lý do từ chối</span><select id="reject-reason"><option value="">— Chọn lý do —</option><option value="income">Thu nhập không đủ khả năng trả nợ</option><option value="leverage">Đòn bẩy tài chính vượt ngưỡng</option><option value="delinquency">Lịch sử quá hạn thanh toán</option><option value="inconsistent">Dữ liệu bất thường hoặc mâu thuẫn</option><option value="documents">Không đủ hồ sơ chứng minh</option><option value="policy">Không đáp ứng chính sách tín dụng</option></select></label>
-          </div>
-          <button id="save-review" type="button" class="btn-magic review-save">Lưu biên bản thẩm định</button>
-          <span id="save-review-status" class="save-status"></span>
-        </section>
-      </div>
-    </aside>
   </main>
 
   <!-- Floating AI Chatbot Bubble Button -->
@@ -981,12 +929,18 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
     });
 
     function render(result) {
-      const useLlmChecked = document.querySelector("#use-llm").checked;
-      document.querySelector("#empty-state").hidden = true;
-      document.querySelector("#error-state").hidden = true;
-      document.querySelector("#result").hidden = false;
-      document.querySelector("#review-empty-state").hidden = true;
-      document.querySelector("#review-workspace").hidden = false;
+      const useLlmChecked = document.querySelector("#use-llm")?.checked ?? true;
+      const emptyStateEl = document.querySelector("#empty-state");
+      if (emptyStateEl) emptyStateEl.hidden = true;
+      const errorStateEl = document.querySelector("#error-state");
+      if (errorStateEl) errorStateEl.hidden = true;
+      const resultEl = document.querySelector("#result");
+      if (resultEl) resultEl.hidden = false;
+      const reviewEmptyEl = document.querySelector("#review-empty-state") || document.querySelector("#review-empty");
+      if (reviewEmptyEl) reviewEmptyEl.hidden = true;
+      const reviewWsEl = document.querySelector("#review-workspace");
+      if (reviewWsEl) reviewWsEl.hidden = false;
+
       const mvElem = document.querySelector("#model-version");
       if (mvElem && result.model_version) {
         mvElem.textContent = result.model_version.split("-").slice(-2).join("-");
@@ -995,35 +949,42 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
       // Auto-Detected Model Banner Updating
       if (result.auto_detected_model) {
         const isAlt = result.auto_detected_model.includes("Alternative-Only");
-        document.querySelector("#routing-model-title").textContent = result.auto_detected_model;
-        document.querySelector("#routing-reason").textContent = result.model_routing_reason;
-        document.querySelector("#routing-icon").textContent = isAlt ? "📱" : "🏦";
+        const titleEl = document.querySelector("#routing-model-title");
+        if (titleEl) titleEl.textContent = result.auto_detected_model;
+        const reasonEl = document.querySelector("#routing-reason");
+        if (reasonEl) reasonEl.textContent = result.model_routing_reason;
+        const iconEl = document.querySelector("#routing-icon");
+        if (iconEl) iconEl.textContent = isAlt ? "📱" : "🏦";
         
         const badge = document.querySelector("#routing-badge");
-        badge.textContent = isAlt ? "⚡ Dữ liệu Thay thế (Thin-file Model)" : "🏦 Dữ liệu Truyền thống + Thay thế";
-        badge.style.background = isAlt ? "#fef3c7" : "#eef2ff";
-        badge.style.color = isAlt ? "#d97706" : "#4f46e5";
-        badge.style.borderColor = isAlt ? "rgba(245,158,11,0.4)" : "rgba(99,102,241,0.3)";
+        if (badge) {
+          badge.textContent = isAlt ? "⚡ Dữ liệu Thay thế (Thin-file Model)" : "🏦 Dữ liệu Truyền thống + Thay thế";
+          badge.style.background = isAlt ? "#fef3c7" : "#eef2ff";
+          badge.style.color = isAlt ? "#d97706" : "#4f46e5";
+          badge.style.borderColor = isAlt ? "rgba(245,158,11,0.4)" : "rgba(99,102,241,0.3)";
+        }
       }
 
       const score = result.poc_score;
-      document.querySelector("#score-value").textContent = score.toFixed(1);
+      const scoreValEl = document.querySelector("#score-value");
+      if (scoreValEl) scoreValEl.textContent = score.toFixed(1);
       
       // Update SVG Speedometer Gauge
-      // Angle goes from -90 deg (score=0) to +90 deg (score=100)
       const needleAngle = -90 + (score / 100) * 180;
-      document.querySelector("#gauge-needle-group").style.transform = `rotate(${needleAngle}deg)`;
+      const needleGroup = document.querySelector("#gauge-needle-group");
+      if (needleGroup) needleGroup.style.transform = `rotate(${needleAngle}deg)`;
 
       const strokeDashoffset = 283 - (score / 100) * 283;
       const arc = document.querySelector("#gauge-arc");
-      arc.style.strokeDashoffset = strokeDashoffset;
-      
-      if (score >= 85) {
-        arc.style.stroke = "#10b981"; // Emerald
-      } else if (score >= 70) {
-        arc.style.stroke = "#f59e0b"; // Amber
-      } else {
-        arc.style.stroke = "#f43f5e"; // Rose
+      if (arc) {
+        arc.style.strokeDashoffset = strokeDashoffset;
+        if (score >= 85) {
+          arc.style.stroke = "#10b981"; // Emerald
+        } else if (score >= 70) {
+          arc.style.stroke = "#f59e0b"; // Amber
+        } else {
+          arc.style.stroke = "#f43f5e"; // Rose
+        }
       }
 
       // Executive Action Card
@@ -1032,69 +993,99 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
       const decTitle = document.querySelector("#decision-title");
       const decSub = document.querySelector("#decision-sub");
 
-      decCard.className = `decision-card ${result.risk_band}`;
+      if (decCard) decCard.className = `decision-card ${result.risk_band}`;
       if (result.risk_band === 'low') {
-        decIcon.textContent = '⚡';
-        decTitle.textContent = 'Ưu tiên rà soát phê duyệt';
-        decSub.textContent = 'Rủi ro model thấp; tiếp tục xác minh hồ sơ và chính sách hạn mức.';
+        if (decIcon) decIcon.textContent = '⚡';
+        if (decTitle) decTitle.textContent = 'Ưu tiên rà soát phê duyệt';
+        if (decSub) decSub.textContent = 'Rủi ro model thấp; tiếp tục xác minh hồ sơ và chính sách hạn mức.';
       } else if (result.risk_band === 'moderate') {
-        decIcon.textContent = '🔍';
-        decTitle.textContent = 'Thẩm định bổ sung';
-        decSub.textContent = 'Đối chiếu sao kê, nguồn thu nhập và nghĩa vụ nợ trước khi quyết định.';
+        if (decIcon) decIcon.textContent = '🔍';
+        if (decTitle) decTitle.textContent = 'Thẩm định bổ sung';
+        if (decSub) decSub.textContent = 'Đối chiếu sao kê, nguồn thu nhập và nghĩa vụ nợ trước khi quyết định.';
       } else {
-        decIcon.textContent = '🛡️';
-        decTitle.textContent = 'Chuyển thẩm định chuyên sâu';
-        decSub.textContent = result.data_quality.warnings.length ? result.data_quality.warnings.join('. ') : 'Rủi ro model cao; cần kiểm tra chéo trước mọi quyết định.';
+        if (decIcon) decIcon.textContent = '🛡️';
+        if (decTitle) decTitle.textContent = 'Chuyển thẩm định chuyên sâu';
+        if (decSub) decSub.textContent = result.data_quality.warnings.length ? result.data_quality.warnings.join('. ') : 'Rủi ro model cao; cần kiểm tra chéo trước mọi quyết định.';
       }
 
       renderReviewSupport(result);
 
-      document.querySelector("#probability").textContent = `${(result.payment_difficulty_probability * 100).toFixed(2)}%`;
+      const probEl = document.querySelector("#probability");
+      if (probEl) probEl.textContent = `${(result.payment_difficulty_probability * 100).toFixed(2)}%`;
       renderFinancialInsights(result, currentUiSummary);
 
       const friendlyBox = document.querySelector("#friendly");
-      if (!useLlmChecked) {
-        friendlyBox.hidden = true;
-      } else {
-        friendlyBox.hidden = false;
-        let badgeHtml = result.llm_used
-          ? `<div class="badge-source llm">🤖 Báo cáo giải thích tự nhiên sinh từ LLM Agent</div>`
-          : `<div class="badge-source fallback">⚠️ LLM không khả dụng (Chưa có API Key) · Bộ quy tắc Fallback</div>`;
-        friendlyBox.innerHTML = badgeHtml + `<div>${escapeHtml(result.friendly_explanation)}</div>`;
+      if (friendlyBox) {
+        if (!useLlmChecked) {
+          friendlyBox.hidden = true;
+        } else {
+          friendlyBox.hidden = false;
+          let badgeHtml = result.llm_used
+            ? `<div class="badge-source llm">🤖 Báo cáo giải thích tự nhiên sinh từ LLM Agent</div>`
+            : `<div class="badge-source fallback">⚠️ LLM không khả dụng (Chưa có API Key) · Bộ quy tắc Fallback</div>`;
+          friendlyBox.innerHTML = badgeHtml + `<div>${escapeHtml(result.friendly_explanation)}</div>`;
+        }
       }
 
       // Visual SHAP Bars
-      const maxContrib = Math.max(...result.top_factors.map(f => Math.abs(f.contribution)), 0.01);
-      document.querySelector("#factors").innerHTML = result.top_factors.map(factor => {
-        const fillPct = Math.min(100, Math.round((Math.abs(factor.contribution) / maxContrib) * 100));
-        const isGood = factor.direction === "decrease_risk";
-        const dirText = isGood ? "Giảm rủi ro (An toàn)" : "Tăng rủi ro (Nguy cơ)";
-        
-        return `
-          <div class="factor-card">
-            <div class="factor-header">
-              <span>${escapeHtml(factor.description)}</span>
-              <span style="color: ${isGood ? 'var(--emerald-600)' : 'var(--rose-600)'}">${dirText}</span>
+      const factorsEl = document.querySelector("#factors");
+      if (factorsEl) {
+        const maxContrib = Math.max(...result.top_factors.map(f => Math.abs(f.contribution)), 0.01);
+        factorsEl.innerHTML = result.top_factors.map(factor => {
+          const fillPct = Math.min(100, Math.round((Math.abs(factor.contribution) / maxContrib) * 100));
+          const isGood = factor.direction === "decrease_risk";
+          const dirText = isGood ? "Giảm rủi ro (An toàn)" : "Tăng rủi ro (Nguy cơ)";
+          
+          return `
+            <div class="factor-card">
+              <div class="factor-header">
+                <span>${escapeHtml(factor.description)}</span>
+                <span style="color: ${isGood ? 'var(--emerald-600)' : 'var(--rose-600)'}">${dirText}</span>
+              </div>
+              <div class="factor-bar-bg">
+                <div class="factor-bar-fill ${isGood ? 'good' : 'bad'}" style="width: ${fillPct}%"></div>
+              </div>
+              <div class="factor-meta">
+                <span>SHAP Value: ${factor.contribution > 0 ? '+' : ''}${factor.contribution.toFixed(4)}</span>
+                <span>Giá trị: ${factor.value}</span>
+              </div>
             </div>
-            <div class="factor-bar-bg">
-              <div class="factor-bar-fill ${isGood ? 'good' : 'bad'}" style="width: ${fillPct}%"></div>
-            </div>
-            <div class="factor-meta">
-              <span>SHAP Value: ${factor.contribution > 0 ? '+' : ''}${factor.contribution.toFixed(4)}</span>
-              <span>Giá trị: ${factor.value}</span>
-            </div>
-          </div>
-        `;
-      }).join("");
+          `;
+        }).join("");
+      }
 
       const quality = Math.round(result.data_quality.completeness * 100);
       const notes = result.data_quality.warnings.length ? ` ${result.data_quality.warnings.join(" ")}` : "";
-      document.querySelector("#quality").textContent = `Độ đầy đủ trường bắt buộc: ${quality}%. ${result.disclaimer}${notes}`;
+      const qualityEl = document.querySelector("#quality");
+      if (qualityEl) qualityEl.textContent = `Độ đầy đủ trường bắt buộc: ${quality}%. ${result.disclaimer}${notes}`;
     }
 
     function numericInput(id) {
       const value = document.querySelector(id)?.value || "0";
       return Number(String(value).replace(/\./g, "")) || 0;
+    }
+
+    function renderFinancialInsights(result, summary) {
+      const insightContainer = document.querySelector("#financial-insights");
+      if (!insightContainer) return;
+      if (!summary) {
+        insightContainer.innerHTML = `<div class="insight-help">Chưa có đủ thông tin tổng quan tài chính.</div>`;
+        return;
+      }
+      insightContainer.innerHTML = `
+        <div class="insight-grid">
+          <div class="insight-card">
+            <div class="insight-label">Xác suất rủi ro vỡ nợ</div>
+            <div class="insight-value">${(result.payment_difficulty_probability * 100).toFixed(2)}%</div>
+            <div class="insight-help">Ước tính từ mô hình Ensemble Champion</div>
+          </div>
+          <div class="insight-card">
+            <div class="insight-label">Phân nhóm rủi ro (Risk Band)</div>
+            <div class="insight-value">${(result.risk_band || 'N/A').toUpperCase()}</div>
+            <div class="insight-help">Khung xếp hạng rủi ro tín dụng</div>
+          </div>
+        </div>
+      `;
     }
 
     function renderReviewSupport(result) {
@@ -1103,9 +1094,13 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
       const annuity = numericInput("#input-AMT_ANNUITY");
       const dti = income > 0 ? annuity / income : null;
       const leverage = income > 0 ? credit / income : null;
-      document.querySelector("#dti-value").textContent = dti === null ? "Không xác định" : `${(dti * 100).toFixed(1)}%`;
-      document.querySelector("#leverage-value").textContent = leverage === null ? "Không xác định" : `${leverage.toFixed(2)}×`;
-      document.querySelector("#proposal-source").textContent = result.llm_used ? "LLM + Policy Guard" : "Rule Fallback";
+      
+      const dtiEl = document.querySelector("#dti-value");
+      if (dtiEl) dtiEl.textContent = dti === null ? "Không xác định" : `${(dti * 100).toFixed(1)}%`;
+      const levEl = document.querySelector("#leverage-value");
+      if (levEl) levEl.textContent = leverage === null ? "Không xác định" : `${leverage.toFixed(2)}×`;
+      const srcEl = document.querySelector("#proposal-source");
+      if (srcEl) srcEl.textContent = result.llm_used ? "LLM + Policy Guard" : "Rule Fallback";
 
       const factors = (result.top_factors || []).slice(0, 3).map(item => item.description).join(", ");
       const recommendation = result.risk_band === "low"
@@ -1113,16 +1108,22 @@ Bạn có thể hỏi tôi bất kỳ câu hỏi nào về:
         : result.risk_band === "moderate"
           ? `Yêu cầu sao kê hoặc chứng từ nguồn thu, đối chiếu nghĩa vụ nợ và các yếu tố: ${factors}.`
           : `Chuyển thẩm định chuyên sâu, xác minh dữ liệu bất thường và khả năng trả nợ. Ưu tiên kiểm tra: ${factors}.`;
-      document.querySelector("#review-recommendation").textContent = recommendation;
+      
+      const recElem = document.querySelector("#review-recommendation") || document.querySelector("#llm-proposal");
+      if (recElem) recElem.textContent = recommendation;
 
       const flags = [];
       if (income <= 0) flags.push("Không thể tính tỷ lệ vì thu nhập không hợp lệ.");
       if (leverage !== null && leverage > 25) flags.push("Khoản vay vượt quá 25 lần thu nhập.");
       if (dti !== null && dti > 1) flags.push("Nghĩa vụ trả hàng tháng vượt quá 100% thu nhập.");
       (result.data_quality.warnings || []).forEach(item => flags.push(item));
-      document.querySelector("#review-flags").innerHTML = flags.length
-        ? flags.map(item => `<div class="flag-item danger">⚠ ${escapeHtml(item)}</div>`).join("")
-        : `<div class="flag-item">✓ Chưa phát hiện cảnh báo theo các quy tắc hiện tại.</div>`;
+      
+      const flagsElem = document.querySelector("#review-flags") || document.querySelector("#automatic-flags");
+      if (flagsElem) {
+        flagsElem.innerHTML = flags.length
+          ? flags.map(item => `<div class="flag danger">⚠ ${escapeHtml(item)}</div>`).join("")
+          : `<div class="flag safe">✓ Chưa phát hiện cảnh báo theo các quy tắc hiện tại.</div>`;
+      }
     }
 
     const finalAmountInput = document.querySelector("#final-approved-amount");

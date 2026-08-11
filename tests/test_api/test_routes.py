@@ -3,10 +3,8 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_root(client):
-    response = await client.get("/")
-    assert response.status_code == 200
-    data = response.json()
-    assert "message" in data
+    response = await client.get("/", follow_redirects=False)
+    assert response.status_code == 307
 
 
 @pytest.mark.asyncio

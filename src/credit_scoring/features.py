@@ -634,8 +634,8 @@ def build_home_credit_features(
     application columns. ``full`` additionally aggregates the five relational
     tables. Full mode is intentionally explicit because it is memory intensive.
     """
-    if feature_set not in {"serving", "application", "full"}:
-        raise ValueError("feature_set must be one of: serving, application, full")
+    if feature_set not in {"serving", "application", "full", "alternative_only"}:
+        raise ValueError("feature_set must be one of: serving, application, full, alternative_only")
     application = pd.read_csv(data_dir / application_file, nrows=sample_size)
     application = engineer_application_features(application)
 

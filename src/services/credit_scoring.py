@@ -6,7 +6,7 @@ import asyncio
 import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -93,19 +93,23 @@ TRADITIONAL_INPUT_FIELDS = {
 }
 
 
-def detect_model_for_application(application: dict[str, Any]) -> tuple[str, str, str]:
+def detect_model_for_application(
+    application: dict[str, Any],
+    history_mode: Literal["auto", "traditional", "alternative"] = "auto",
+) -> tuple[str, str, str]:
     """Identify if the payload has traditional credit bureau/loan fields or only alternative fields."""
     import numpy as np
 
-    has_traditional = False
-    for field in TRADITIONAL_INPUT_FIELDS:
-        val = application.get(field)
-        if val is not None and val != "" and not (isinstance(val, float) and np.isnan(val)):
-            has_traditional = True
-            break
+    has_traditional = history_mode == "traditional"
+    if history_mode == "auto":
+        for field in TRADITIONAL_INPUT_FIELDS:
+            val = application.get(field)
+            if val is not None and val != "" and not (isinstance(val, float) and np.isnan(val)):
+                has_traditional = True
+                break
 
     settings = get_settings()
-    if has_traditional:
+    if has_traditional and history_mode != "alternative":
         path = settings.credit_model_path
         name = "Hybrid Model (Traditional + Alternative Data)"
         reason = "Hệ thống tự động phát hiện hồ sơ có chứa điểm rủi ro Bureau / Khoản vay truyền thống. Đã tự động kích hoạt Hybrid Model (ROC-AUC ~0.76)."
@@ -128,8 +132,9 @@ async def score_application(
     *,
     explain_with_llm: bool,
     top_k: int,
+    history_mode: Literal["auto", "traditional", "alternative"] = "auto",
 ) -> dict[str, Any]:
-    model_path, detected_name, routing_reason = detect_model_for_application(application)
+    model_path, detected_name, routing_reason = detect_model_for_application(application, history_mode)
     bundle = load_credit_model(model_path)
 
     result = bundle.score([application], top_k=top_k)[0]
